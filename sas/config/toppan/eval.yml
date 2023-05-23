@@ -1,0 +1,8 @@
+script_name: "toppan-1"
+model_name: "bert"
+dataset_dir: "data/pickle/toppan"
+model_dir: "data/model/toppan/crossvalid"
+eval_dir: "data/eval/toppan/crossvalid"
+target_type: "analytic"
+preprocessing_type: "bert"
+attribution: true
