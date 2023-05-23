@@ -1,0 +1,22 @@
+version: '3'
+services:
+  server:
+    build: ./server
+    container_name: web-server
+    working_dir: /mnt/web/server/
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./server:/mnt/web/server
+    tty: true
+    command: ["uvicorn", "server:app", "--reload", "--host", "0.0.0.0", "--port", "5000"]
+
+  front:
+    build: ./front
+    container_name: web-front
+    working_dir: /mnt/web/front
+    ports:
+      - "3000:3000"
+    tty: true
+    command: ["npm", "start"]
+ 
