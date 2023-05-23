@@ -1,0 +1,24 @@
+# https://docs.wandb.ai/guides/sweeps/configuration
+method: "random"
+metric:
+  name: "valid_loss"
+  goal: "minimize"
+parameters:
+  learning_rate:
+    distribution: "inv_log_uniform_values"
+    min: 0.000001
+    max: 0.001
+  hidden_size:
+    distribution: "q_log_uniform_values"
+    q: 32
+    min: 32
+    max: 256
+  batch_size:
+    distribution: "q_log_uniform_values"
+    q: 2
+    min: 2
+    max: 8
+  dropout_rate:
+    distribution: "uniform"
+    min: 0.0
+    max: 0.8

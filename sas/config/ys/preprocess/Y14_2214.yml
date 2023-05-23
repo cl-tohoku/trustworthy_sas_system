@@ -1,0 +1,6 @@
+script_name: "Y14_2214"
+script_path: "data/data_ys/Y14/Y14_2-2_1_4.json"
+dataset_dir: "data/pickle/Y14"
+prompt_path: "config/prompt/Y14_2214.yml"
+dataset_type: "ys"
+download_ft: false
