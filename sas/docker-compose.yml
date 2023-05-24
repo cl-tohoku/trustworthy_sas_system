@@ -6,7 +6,7 @@ services:
     container_name: sas
     # please set unique port number (49152–65535)
     ports:
-      - "51115:22"
+      - "54321:22"
     volumes:
       - ./src:/mnt/src
     tty: true

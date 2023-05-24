@@ -15,7 +15,6 @@ sys.path.append("..")
 from library.util import Util
 from library.quadratic_weighted_kappa import quadratic_weighted_kappa
 from eval.attribution import FeatureAttribution
-from eval.cf import Counterfactual
 
 
 class EvalBase:
