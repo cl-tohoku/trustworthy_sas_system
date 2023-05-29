@@ -105,6 +105,7 @@ class TrainConfig(YAML):
     sweep_count: int = 50
     # finetune
     heuristics: str = ""
+    term: str = ""
 
 
 @dataclass
@@ -140,8 +141,12 @@ class EvalConfig(YAML):
     cluster_dir: str = "data/cluster/Y14"
     point_type: str = "attribution"
     gold_cluster_dir: str = ""
+    # finetune
     finetuning_dir: str = "data/finetuning"
     finetuning: bool = False
+    heuristics: str = ""
+    term: str = ""
+    loss: str = ""
 
 
 @dataclass

@@ -38,6 +38,16 @@ class PreprocessFinetuning:
             df_list_dict[df["Term"].unique()[0]] = df
         return df_list_dict
 
+
+    def create_all_df(self, concat_df, max_id):
+        all_df_list = []
+        for term in concat_df["term"].unique():
+            df = pd.DataFrame({"Sample_ID": list(range(max_id))})
+            df["term"] = term
+            df["heuristics"] = "All"
+            all_df_list.append(df)
+        return pd.concat(all_df_list).reset_index(drop=True)
+
     def concat_update_df_2(self, data_df, updated_df_dict, max_id):
         concat_list = []
         for term, updated_df in updated_df_dict.items():
@@ -50,7 +60,10 @@ class PreprocessFinetuning:
             concat_df = pd.concat(part_df_list)
             concat_df["term"] = term
             concat_list.append(concat_df)
-        return pd.concat(concat_list).reset_index(drop=True)
+        update_df = pd.concat(concat_list).reset_index(drop=True)
+        # all
+        all_df = self.create_all_df(update_df, max_id)
+        return pd.concat([update_df, all_df]).reset_index(drop=True)
 
     def load_integration_df(self, data_type):
         # load evaluated data df
@@ -88,5 +101,5 @@ class PreprocessFinetuning:
         train_df = self.load_integration_df("train")
 
         # split & dump
-        # self.base.dump_prompt(prompt)
+        self.base.dump_prompt(prompt)
         self.to_pickle(train_df, "bert", "train")

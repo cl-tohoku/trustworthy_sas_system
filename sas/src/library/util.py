@@ -115,10 +115,11 @@ class Util:
             return array + [padding_id for i in range(padding_length)]
 
     @staticmethod
-    def save_model(model, config, finetuning=False):
+    def save_model(model, config, heuristics=False):
         experiment_id = config.wandb_name if config.unique_id is None else config.unique_id
-        if finetuning:
-            file_name = "{}_{}.finetuning.state".format(config.script_name, experiment_id)
+        if heuristics:
+            file_name = "{}_{}.{}_{}_{}.state".format(config.script_name, experiment_id,
+                                                      config.heuristics, config.term, config.loss)
         elif config.validation:
             file_name = "{}_{}_v{}.state".format(config.script_name, experiment_id, config.validation_idx)
         else:
@@ -132,9 +133,10 @@ class Util:
         torch.save(state_dict, output_path)
 
     @staticmethod
-    def load_model(config, model_config, finetuning=False):
-        if finetuning:
-            file_name = "{}_{}.finetuning.state".format(config.script_name, config.unique_id)
+    def load_model(config, model_config, heuristics=False):
+        if heuristics:
+            file_name = "{}_{}.{}_{}_{}.state".format(config.script_name, config.unique_id,
+                                                      config.heuristics, config.term, config.loss)
         elif config.validation:
             file_name = "{}_{}_v{}.state".format(config.script_name, config.unique_id, config.validation_idx)
         else:
@@ -151,8 +153,9 @@ class Util:
     @staticmethod
     def save_eval_df(dataframe, config, data_type, suffix, csv=True, finetuning=False):
         if finetuning:
-            csv_file_name = "{}_{}_{}.finetuning.csv".format(config.unique_id, data_type, suffix)
-            pkl_file_name = "{}_{}_{}.finetuning.pkl".format(config.unique_id, data_type, suffix)
+            formatter = "{}_{}_{}".format(config.heuristics, config.term, config.loss)
+            csv_file_name = "{}_{}_{}.{}.csv".format(config.unique_id, data_type, suffix, formatter)
+            pkl_file_name = "{}_{}_{}.{}.pkl".format(config.unique_id, data_type, suffix, formatter)
         elif config.validation:
             v_idx = config.validation_idx
             csv_file_name = "{}_{}_{}.v{}.csv".format(config.unique_id, data_type, suffix, v_idx)

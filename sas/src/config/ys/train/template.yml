@@ -12,6 +12,6 @@ batch_size: 8
 epoch: 100
 wandb: true
 wandb_entity: "ekupura"
-wandb_project_name: "0518-test"
+wandb_project_name: "0529"
 wandb_group: "Y14_1213"
 parallel: true

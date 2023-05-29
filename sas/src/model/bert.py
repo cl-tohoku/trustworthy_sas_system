@@ -37,7 +37,7 @@ class SimpleBert(ModelBase):
 
         # concat
         output = torch.cat(outputs, dim=1)
-        attention_weights = torch.stack(attention_weights).permute(1, 0, 2)
+        # attention_weights = torch.stack(attention_weights).permute(1, 0, 2)
 
         if attention:
             return output, attention_weights

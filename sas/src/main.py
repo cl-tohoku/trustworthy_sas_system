@@ -112,6 +112,19 @@ class Main:
         config.update(kwargs)
         TrainFinetuning(config).finetune()
 
+    def finetrain_comb(self, train_config_path, heuristics_list, term_list, **kwargs):
+        heuristics_list = [str(x) for x in heuristics_list.split(" ")]
+        term_list = [str(x) for x in term_list.split(" ")]
+        for heuristics, term in product(heuristics_list, term_list):
+            print(heuristics, term)
+            config = Util.load_train_config(train_config_path)
+            config.update({"heuristics": heuristics, "term": term})
+            config.update(kwargs)
+            try:
+                TrainFinetuning(config).finetune()
+            except Exception as e:
+                print("Error:", e)
+
 
 if __name__ == "__main__":
     fire.Fire(Main)
