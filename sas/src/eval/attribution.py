@@ -87,9 +87,10 @@ class FeatureAttribution:
         if self.config.model_name == "lstm":
             self.model.train()
 
+        step_size = self.config.step_size
         saliency = IntegratedGradients(self.model, multiply_by_inputs=True)
         grad = saliency.attribute(input_emb, baselines=baseline_emb, target=target,
-                                  additional_forward_args=arg, n_steps=512, internal_batch_size=256)
+                                  additional_forward_args=arg, n_steps=step_size, internal_batch_size=128)
         attribution = torch.sum(grad, dim=2)
 
         # calc baseline output

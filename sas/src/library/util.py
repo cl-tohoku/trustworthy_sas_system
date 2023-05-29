@@ -176,36 +176,6 @@ class Util:
         return df
 
     @staticmethod
-    def mse_loss(prompt_score):
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        prompt_score = torch.tensor(prompt_score).to(device)
-
-        def loss_fn(input, target):
-            pred_score_fixed = input / prompt_score
-            true_score_fixed = target / prompt_score
-            loss = F.mse_loss(pred_score_fixed, true_score_fixed)
-            return loss
-
-        return loss_fn
-
-    @staticmethod
-    def attention_loss(prompt_score, anot_lambda=100.0):
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        prompt_score = torch.tensor(prompt_score).to(device)
-
-        def loss_fn(input, target):
-            pred_score, attention = input[0], input[1]
-            true_score, annotation = target[0], target[1]
-            pred_score_fixed = pred_score / prompt_score
-            true_score_fixed = true_score / prompt_score
-            annotation = torch.softmax((annotation - 1.0) * 10000, dim=2)
-            attention_loss = F.mse_loss(annotation, attention)
-            loss = F.mse_loss(pred_score_fixed, true_score_fixed) + anot_lambda * attention_loss
-            return loss
-
-        return loss_fn
-
-    @staticmethod
     def to_tt(item, dtype=torch.int64, pad=False, value=0):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         if pad:

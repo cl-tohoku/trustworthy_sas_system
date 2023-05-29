@@ -95,49 +95,6 @@ class TrainFinetuning:
         train_dataset = Util.load_dataset(self.config, "train", finetuning=True)
         return train_dataset
 
-    def grad_loss(self, prompt_score):
-        prompt_score = torch.tensor(prompt_score).to(self.device)
-
-        def loss_fn(prediction, gold, grad, annotation, term_idx):
-            # ordinal mse loss
-            pred_score_fixed = prediction / prompt_score
-            true_score_fixed = gold/ prompt_score
-            loss_first = F.mse_loss(pred_score_fixed, true_score_fixed)
-
-            grad_zero = (1.0 - annotation.to(torch.float32).squeeze(0)) * grad.squeeze(0)
-            loss_second = torch.norm(grad_zero) * 1e+10
-            # loss = loss_first + 1.0 * loss_second
-            loss = loss_first
-
-            print('\rLoss:{:.5f}, Loss_1:{:.5f}, Loss_2:{:.5f}'.format(loss, loss_first, loss_second,), end='')
-            return loss
-
-        return loss_fn
-
-    def attn_loss(self, prompt_score):
-        prompt_score = torch.tensor(prompt_score).to(self.device)
-
-        def loss_fn(prediction, gold, attention, annotation, term_idx):
-            # ordinal mse loss
-            pred_score_fixed = prediction / prompt_score
-            true_score_fixed = gold / prompt_score
-            loss_first = F.mse_loss(pred_score_fixed, true_score_fixed)
-
-            # attntion loss, attention mse
-            selected_attn = attention[term_idx].squeeze(0)
-            annotation_sum = torch.sum(annotation)
-            if annotation_sum < 1:
-                fixed_anno = torch.ones(annotation.shape[1], device=self.device) / annotation.shape[1]
-            else:
-                fixed_anno = annotation.squeeze(0) / annotation_sum
-            loss_second = F.mse_loss(selected_attn, fixed_anno)
-            loss = loss_first + 10.0 * loss_second
-
-            print('\rLoss:{:.5f}, Loss_1:{:.5f}, Loss_2:{:.10f}, '.format(loss, loss_first, loss_second,), end='')
-            # print('\rLoss_2:{:.10f}, '.format(loss_second,), end='')
-            return loss
-
-        return loss_fn
 
     def calc_int_grad(self, input_ids, token_type_ids, attention_mask, target):
         self.model.eval()
@@ -180,10 +137,13 @@ class TrainFinetuning:
     def training_phase(self, train_dataset):
         self.model.train()
         losses = []
-        dataset_size = len(train_dataset)
+
         for idx, data_rows in enumerate(train_dataset.iterrows()):
+            # filter
             if data_rows[1]["heuristics"] != self.config.heuristics or data_rows[1]["term"] != self.config.term:
                 continue
+
+            # training
             self.optimizer.zero_grad()
             data_tuple, gold, term_idx, annotation = self.extract_data(data_rows[1])
             prediction, attention = self.prediction_attn(data_tuple[0], data_tuple[1], data_tuple[2], term_idx)

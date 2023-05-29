@@ -24,8 +24,8 @@ from library.visualizer import Visualizer
 
 
 class Integration:
-    def __init__(self):
-        pass
+    def __init__(self, config=None):
+        self.config = config
 
     def load_performances(self, eval_dir_path, prompt_name):
         dir_list = glob(eval_dir_path + "/*")
@@ -49,6 +49,23 @@ class Integration:
         os.makedirs(dir_path, exist_ok=True)
         plt.tight_layout()
         plt.savefig(Path(dir_path) / "{}.png".format(prompt_name))
+
+    def fitness(self):
+        dir_path = Path(self.config.eval_dir)  / self.config.script_name
+        baseline_none_df = pd.read_pickle(dir_path / "analytic_test_attributions.pkl")
+        baseline_attention_df = pd.read_pickle(dir_path / "attention_test_attributions.pkl")
+
+        def df_filter(df, metric, heuristic):
+            df = pd.DataFrame(df[df["Gold"] > 0][metric])
+            df["heuristic"] = heuristic
+            return df
+
+        baseline_none_df = df_filter(baseline_none_df, "Recall_Score", heuristic="None")
+        baseline_attention_df = df_filter(baseline_attention_df, "Recall_Score", heuristic="None")
+
+        group_df = pd.concat([baseline_none_df, baseline_attention_df])
+        mean = group_df.groupby("heuristic").mean()
+        print(mean)
 
     def __call__(self, prompt_name, eval_dir_path):
         df = self.load_performances(eval_dir_path, prompt_name)

@@ -14,6 +14,7 @@ import torch.nn.functional as F
 
 sys.path.append("..")
 from library.util import Util
+from library.loss import Loss
 from library.loader import Loader
 
 
@@ -77,11 +78,11 @@ class TrainBase:
         if self.finetuning:
             self.loss = self.finetuning_loss(max_score)
         elif "mse" in self.config.loss.lower():
-            self.loss = Util.mse_loss(max_score)
+            self.loss = Loss.mse_loss(max_score)
         elif "entropy" in self.config.loss.lower():
             RuntimeError("Unimplemented")
         elif "attention" in self.config.loss.lower():
-            self.loss = Util.attention_loss(max_score, anot_lambda=1.0)
+            self.loss = Loss.attn_loss(max_score)
         else:
             raise RuntimeError("Invalid loss definition")
 
@@ -124,51 +125,14 @@ class TrainBase:
             output = output.squeeze(1)
         return output
 
-    def finetuning_loss(self, prompt_score):
-        prompt_score = torch.tensor(prompt_score).to(self.device)
-
-        def loss_fn(pred, target, anot, heuristics, inputs):
-            pred_score_fixed = pred / prompt_score
-            true_score_fixed = target / prompt_score
-            loss_first = F.mse_loss(pred_score_fixed, true_score_fixed)
-
-            # heuristics
-            loss_second = torch.zeros(loss_first.shape, device=self.device)
-            for idx in range(heuristics.shape[0]):
-                for jdx in range(heuristics.shape[1]):
-                    coef = heuristics[idx][jdx]
-                    if coef > 0:
-                        gradient = self.int_grad(*inputs, idx=idx, jdx=jdx)
-                        target_annotation = anot[idx][jdx] / prompt_score[jdx]
-                        loss_second_value = F.mse_loss(gradient, target_annotation)
-                        loss_second += loss_second_value.detach()
-
-            loss = loss_first + 10 * loss_second
-            return loss
-
-        return loss_fn
-
     def calc_loss(self, prediction, data_tuple):
         inputs, scores = data_tuple
-        if self.finetuning:
-            target_score = scores[0] if self.config.target_type == "analytic" else scores[1]
-            annotation, heuristics = scores[2], scores[3]
-            return self.loss(pred=prediction, target=target_score, anot=annotation, heuristics=heuristics, inputs=inputs)
+        target_score = scores[0] if self.config.target_type == "analytic" else scores[1]
+        if self.config.loss == "attention":
+            return self.loss(prediction=prediction[0], gold=target_score, attention=prediction[1],
+                             annotation=scores[2], term_idx=-1)
         else:
-            target_score = scores[0] if self.config.target_type == "analytic" else scores[1]
-            target_data = (target_score, scores[2]) if self.config.loss == "attention" else target_score
-            return self.loss(input=prediction, target=target_data)
-
-    def int_grad(self, input_ids, token_type_ids, attention_mask, idx, jdx):
-        arg = (token_type_ids[idx].unsqueeze(0), attention_mask[idx].unsqueeze(0), False, True)
-        device = "cuda"
-        input_emb = self.model.module.bert.embeddings(input_ids[idx].unsqueeze(0))
-        baseline_emb = torch.zeros(input_emb.shape, device=device)
-
-        saliency = IntegratedGradients(self.model, multiply_by_inputs=True)
-        grad = saliency.attribute(input_emb, baselines=baseline_emb, target=jdx,
-                                  additional_forward_args=arg, n_steps=512, internal_batch_size=128)
-        return torch.sum(grad, dim=2).squeeze(0)
+            return self.loss(input=prediction, target=target_score)
 
     def training_phase(self, train_loader):
         self.model.train()
@@ -210,24 +174,6 @@ class TrainBase:
     def train(self, train_dataset, valid_dataset):
         train_loader = self.to_dataloader(train_dataset)
         valid_loader = self.to_dataloader(valid_dataset)
-
-        for n in range(self.config.epoch):
-            epoch = n + 1
-            print("epoch:{}".format(epoch))
-            train_loss = self.training_phase(train_loader)
-            valid_loss = self.validation_phase(valid_loader)
-            print("train loss: {:.3f}, valid loss: {:.3f}".format(train_loss, valid_loss))
-            if self.is_best(valid_loss) or epoch == 1:
-                self.save_model()
-
-    def finetune(self):
-        self.initialize()
-        train_dataset, valid_dataset = self.load_dataset()
-
-        loader = Loader.to_finetuning_dataloader
-        ahs = self.model_config.attention_hidden_size
-        train_loader = loader(train_dataset, self.config.batch_size, ahs, heuristic=self.config.heuristics)
-        valid_loader = loader(valid_dataset, self.config.batch_size, ahs, heuristic=self.config.heuristics)
 
         for n in range(self.config.epoch):
             epoch = n + 1

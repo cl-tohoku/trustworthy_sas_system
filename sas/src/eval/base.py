@@ -10,6 +10,7 @@ from tqdm import tqdm
 from itertools import islice
 import numpy as np
 from transformers import BertJapaneseTokenizer
+from sklearn.metrics import recall_score, precision_score
 
 sys.path.append("..")
 from library.util import Util
@@ -145,8 +146,19 @@ class EvalBase:
         grad_score = real_output / all_output
         return grad_score
 
+    def overlap_metric(self, attribution, annotation):
+        anot = np.array(annotation)
+        justification_size = np.sum(anot)
+        attribution_idx = np.argsort(attribution)[::-1][:justification_size]
+        binary_attribution = np.zeros(len(attribution))
+        binary_attribution[attribution_idx] = 1
+        recall = recall_score(y_true=anot, y_pred=binary_attribution, zero_division=0)
+        precision = precision_score(y_true=anot, y_pred=binary_attribution, zero_division=0)
+        return recall, precision
+
     def eval_attributions(self, dataset):
         results = defaultdict(list)
+        fitness = defaultdict(list)
         attr = FeatureAttribution(self.config, self.model)
         for idx, script in enumerate(tqdm(dataset.iterrows())):
             script = pd.DataFrame(script[1]).T
@@ -165,8 +177,10 @@ class EvalBase:
                     results["Annotation"].append(annotation_matrix[target])
                     results["Annotation_All"].append(annotation_matrix)
 
+                # score
                 results["Gold"].append(gold_label[target])
                 results["Pred"].append(pred_label[target])
+
                 # deprecated
                 results["Idx"].append(idx)
                 results["Sample_ID"].append(idx)
@@ -182,6 +196,7 @@ class EvalBase:
                 results["Attention_Mask"].append(args[1].squeeze(0).to("cpu").numpy())
                 results["Score_Vector"].append(gold_label)
 
+                # for xai
                 attribution, int_grad, emb, baseline_value = attr.calc_gradient(input_ids, target, args, multiply=True)
                 prediction_value = pred_value_list[target]
                 results["Attribution"].append(attribution)
@@ -190,13 +205,16 @@ class EvalBase:
                 results["Baseline_Value"].append(baseline_value)
                 results["Prediction_Value"].append(prediction_value)
                 results["Attribution_Value"].append(float(np.sum(int_grad)))
-                diff = float(np.sum(int_grad)) - (prediction_value - baseline_value)
-                int_score = self.int_grad_metric(attribution, annotation_matrix[target])
-                results["Int_Score"].append(int_score)
-                print('\rI:{}'.format(int_score), end='')
 
-        print("Int Score: {}".format(np.mean(results["Int_Score"])))
-        return results
+                # xai eval
+                int_score = self.int_grad_metric(attribution, annotation_matrix[target])
+                recall, precision = self.overlap_metric(attribution, annotation_matrix[target])
+                fitness["Int_Score"].append(int_score)
+                fitness["Recall_Score"].append(recall)
+                fitness["Precision_Score"].append(precision)
+                print('\rR:{:.5f}, P:{:.5f}'.format(recall, precision), end='')
+
+        return results, fitness
 
     def calc_ranker(self, input_ids, attribution):
         attr_ranking = np.argsort(attribution)[::-1]
@@ -218,15 +236,16 @@ class EvalBase:
 
         if self.config.attribution:
             attr_results = self.eval_attributions(dataset)
-            dataframe_attribution = pd.DataFrame(attr_results)
+            dataframe_attribution, fitness_df = pd.DataFrame(attr_results)
             print("Outputting...")
             self.dump_results(dataframe_attribution, suffix="attributions", data_type=data_type, csv=False)
+            self.dump_results(fitness_df, suffix="fitness", data_type=data_type, csv=True)
 
     def dump_results(self, dataframe, data_type, suffix, csv=True):
         Util.save_eval_df(dataframe, self.config, data_type, suffix, csv, finetuning=self.config.finetuning)
 
     def __call__(self):
-        self.model = Util.load_model(self.config, self.model_config, heuristics=self.config.heuristics)
+        self.model = Util.load_model(self.config, self.model_config, heuristics=self.config.finetuning)
         # test set
         print("Test")
         test_dataset = Util.load_dataset(self.config, "test",)

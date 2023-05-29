@@ -125,6 +125,28 @@ class Main:
             except Exception as e:
                 print("Error:", e)
 
+    def finetuning_eval(self, eval_config_path, **kwargs):
+        config = Util.load_train_config(eval_config_path)
+        config.update(kwargs)
+        EvalBase(config)()
+
+    def fineeval_comb(self, eval_config_path, heuristics_list, term_list, **kwargs):
+        heuristics_list = [str(x) for x in heuristics_list.split(" ")]
+        term_list = [str(x) for x in term_list.split(" ")]
+        for heuristics, term in product(heuristics_list, term_list):
+            print(heuristics, term)
+            config = Util.load_eval_config(eval_config_path)
+            config.update({"heuristics": heuristics, "term": term, "finetuning": True})
+            config.update(kwargs)
+            try:
+                EvalBase(config)()
+            except Exception as e:
+                print("Error:", e)
+
+    def fitness(self, eval_config_path, **kwargs):
+        eval_config = Util.load_eval_config(eval_config_path)
+        eval_config.update(kwargs)
+        Integration(eval_config).fitness()
 
 if __name__ == "__main__":
     fire.Fire(Main)
