@@ -75,14 +75,16 @@ class TrainBase:
             max_score = sum(self.prompt_config.max_scores)
 
         # choose loss function
-        if self.finetuning:
-            self.loss = self.finetuning_loss(max_score)
-        elif "mse" in self.config.loss.lower():
+        if "mse" in self.config.loss.lower():
             self.loss = Loss.mse_loss(max_score)
         elif "entropy" in self.config.loss.lower():
             RuntimeError("Unimplemented")
         elif "attention" in self.config.loss.lower():
             self.loss = Loss.attn_loss(max_score)
+        elif "gradient" in self.config.loss.lower():
+            self.loss = Loss.grad_loss(max_score)
+        elif "combination" in self.config.loss.lower():
+            self.loss = Loss.comb_loss(max_score)
         else:
             raise RuntimeError("Invalid loss definition")
 
@@ -97,12 +99,6 @@ class TrainBase:
             self.model = torch.nn.DataParallel(self.model)
 
     def log_wandb(self, phase, loss, commit=True):
-        """
-        :param phase: str, "train" or "valid"
-        :param loss: float, loss.item()
-        :param commit: bool, True if the end of epoch
-        :return: None
-        """
         wandb.log({"{}_loss".format(phase): loss}, commit=commit)
 
     def load_dataset(self):
@@ -114,15 +110,26 @@ class TrainBase:
         loader = Loader.to_bert_dataloader if self.prep_type == "bert" else Loader.to_ft_dataloader
         return loader(dataset, self.config.batch_size, self.model_config.attention_hidden_size)
 
+    def calc_gradient(self, inputs):
+        embedding_func = self.model.module.bert.embeddings
+        grad_list = [Util.calc_gradient_static(self.model, embedding_func, inputs[0], inputs[1], inputs[2], target=idx)
+                     for idx in range(self.model_config.output_size)]
+        return torch.stack(grad_list).permute(1, 0, 2)
+
     def predict(self, data_tuple):
-        use_attention = (self.config.loss == "attention")
         inputs, _ = data_tuple
-        if self.prep_type == "bert":
-            output = self.model(inputs[0], inputs[1], inputs[2], attention=use_attention)
+        if self.config.loss == "attention":
+            output = self.model(inputs[0], inputs[1], inputs[2], attention=True)
+        elif self.config.loss == "gradient":
+            output = self.model(inputs[0], inputs[1], inputs[2], attention=False)
+            grad = self.calc_gradient(inputs)
+            output = (output, grad)
+        elif self.config.loss == "combination":
+            output = self.model(inputs[0], inputs[1], inputs[2], attention=True)
+            grad = self.calc_gradient(inputs)
+            output = output + (grad, )
         else:
-            output = self.model(inputs[0], attention=use_attention)
-        if self.config.target_type != "analytic":
-            output = output.squeeze(1)
+            output = self.model(inputs[0], inputs[1], inputs[2], attention=False)
         return output
 
     def calc_loss(self, prediction, data_tuple):
@@ -131,8 +138,14 @@ class TrainBase:
         if self.config.loss == "attention":
             return self.loss(prediction=prediction[0], gold=target_score, attention=prediction[1],
                              annotation=scores[2], term_idx=-1)
+        elif self.config.loss == "gradient":
+            return self.loss(prediction=prediction[0], gold=target_score, gradient=prediction[1],
+                             annotation=scores[2], term_idx=-1)
+        elif self.config.loss == "combination":
+            return self.loss(prediction=prediction[0], gold=target_score, attention=prediction[1],
+                             gradient=prediction[2], annotation=scores[2], term_idx=-1)
         else:
-            return self.loss(input=prediction, target=target_score)
+            return self.loss(input=prediction[0], target=target_score)
 
     def training_phase(self, train_loader):
         self.model.train()

@@ -50,21 +50,21 @@ class Integration:
         plt.tight_layout()
         plt.savefig(Path(dir_path) / "{}.png".format(prompt_name))
 
-    def fitness(self):
-        dir_path = Path(self.config.eval_dir)  / self.config.script_name
-        baseline_none_df = pd.read_pickle(dir_path / "analytic_test_attributions.pkl")
-        baseline_attention_df = pd.read_pickle(dir_path / "attention_test_attributions.pkl")
+    def fitness(self, eval_dir, script_name):
+        dir_path = Path(eval_dir)  / script_name
+        baseline_none_df = pd.read_pickle(dir_path / "analytic_test_fitness.pkl")
+        baseline_attention_df = pd.read_pickle(dir_path / "attention_test_fitness.pkl")
 
-        def df_filter(df, metric, heuristic):
+        def df_filter(df, metric, heuristics):
             df = pd.DataFrame(df[df["Gold"] > 0][metric])
-            df["heuristic"] = heuristic
+            df["heuristics"] = heuristics
             return df
 
-        baseline_none_df = df_filter(baseline_none_df, "Recall_Score", heuristic="None")
-        baseline_attention_df = df_filter(baseline_attention_df, "Recall_Score", heuristic="None")
+        baseline_none_df = df_filter(baseline_none_df, "Recall_Score", heuristics="None")
+        baseline_attention_df = df_filter(baseline_attention_df, "Recall_Score", heuristics="Attention")
 
         group_df = pd.concat([baseline_none_df, baseline_attention_df])
-        mean = group_df.groupby("heuristic").mean()
+        mean = group_df.groupby("heuristics").mean()
         print(mean)
 
     def __call__(self, prompt_name, eval_dir_path):

@@ -36,22 +36,23 @@ class Loss:
 
 
     @staticmethod
-    def grad_loss(prompt_score):
+    def grad_loss(prompt_score, _lambda=1.0):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         prompt_score = torch.tensor(prompt_score).to(device)
 
-        def loss_fn(prediction, gold, grad, annotation, term_idx):
+        def loss_fn(prediction, gold, gradient, annotation, term_idx=None):
             # ordinal mse loss
             pred_score_fixed = prediction / prompt_score
             true_score_fixed = gold / prompt_score
             loss_first = F.mse_loss(pred_score_fixed, true_score_fixed)
 
-            grad_zero = (1.0 - annotation.to(torch.float32).squeeze(0)) * grad.squeeze(0)
-            loss_second = torch.norm(grad_zero) * 1e+10
-            # loss = loss_first + 1.0 * loss_second
-            loss = loss_first
+            fixed_annotation = torch.softmax((annotation - 1.0) * 1e+10, dim=2)
+            fixed_annotation = (fixed_annotation.permute(0, 2, 1) * prompt_score).permute(0, 2, 1)
+            loss_second = F.mse_loss(gradient, fixed_annotation)
 
-            print('\rLoss:{:.5f}, Loss_1:{:.5f}, Loss_2:{:.5f}'.format(loss, loss_first, loss_second, ), end='')
+            loss = loss_first + _lambda * loss_second
+
+            print('\rLoss:{:.5f}, Loss_1:{:.5f}, Loss_2:{:.10f}, '.format(loss, loss_first, loss_second, ), end='')
             return loss
 
         return loss_fn
@@ -62,7 +63,7 @@ class Loss:
         device = "cuda" if torch.cuda.is_available() else "cpu"
         prompt_score = torch.tensor(prompt_score).to(device)
 
-        def loss_fn(prediction, gold, attention, annotation, term_idx):
+        def loss_fn(prediction, gold, attention, annotation, term_idx=None):
             # ordinal mse loss
             pred_score_fixed = prediction / prompt_score
             true_score_fixed = gold / prompt_score
@@ -77,6 +78,33 @@ class Loss:
             loss = loss_first + _lambda * loss_second
 
             print('\rLoss:{:.5f}, Loss_1:{:.5f}, Loss_2:{:.10f}, '.format(loss, loss_first, loss_second, ), end='')
+            return loss
+
+        return loss_fn
+
+    @staticmethod
+    def comb_loss(prompt_score, _lambda_attn=1.0, _lambda_grad=1.0):
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        prompt_score = torch.tensor(prompt_score).to(device)
+
+        def loss_fn(prediction, gold, attention, gradient, annotation, term_idx=None):
+            # ordinal mse loss
+            pred_score_fixed = prediction / prompt_score
+            true_score_fixed = gold / prompt_score
+            loss_first = F.mse_loss(pred_score_fixed, true_score_fixed)
+
+            # attntion loss, attention mse
+            selected_attn = attention
+            fixed_annotation = torch.softmax((annotation - 1.0) * 1e+10, dim=2)
+            loss_attn = F.mse_loss(selected_attn, fixed_annotation)
+
+            # gradient loss
+            fixed_annotation = torch.softmax((annotation - 1.0) * 1e+10, dim=2)
+            fixed_annotation = (fixed_annotation.permute(0, 2, 1) * prompt_score).permute(0, 2, 1)
+            loss_grad = F.mse_loss(gradient, fixed_annotation)
+
+            loss = loss_first + _lambda_attn * loss_attn + _lambda_grad * loss_grad
+
             return loss
 
         return loss_fn

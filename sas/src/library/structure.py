@@ -143,6 +143,7 @@ class EvalConfig(YAML):
     gold_cluster_dir: str = ""
     step_size: int = 512
     # finetune
+    finetuning_dir: str = ""
     finetuning: bool = False
     heuristics: str = ""
     term: str = ""

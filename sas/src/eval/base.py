@@ -209,12 +209,14 @@ class EvalBase:
                 # xai eval
                 int_score = self.int_grad_metric(attribution, annotation_matrix[target])
                 recall, precision = self.overlap_metric(attribution, annotation_matrix[target])
+                fitness["Gold"].append(gold_label[target])
+                fitness["Term"].append(alpha)
                 fitness["Int_Score"].append(int_score)
                 fitness["Recall_Score"].append(recall)
                 fitness["Precision_Score"].append(precision)
                 print('\rR:{:.5f}, P:{:.5f}'.format(recall, precision), end='')
 
-        return results, fitness
+        return pd.DataFrame(results), pd.DataFrame(fitness)
 
     def calc_ranker(self, input_ids, attribution):
         attr_ranking = np.argsort(attribution)[::-1]
@@ -235,10 +237,9 @@ class EvalBase:
         self.dump_results(dataframe_performance, suffix="performances", data_type=data_type)
 
         if self.config.attribution:
-            attr_results = self.eval_attributions(dataset)
-            dataframe_attribution, fitness_df = pd.DataFrame(attr_results)
+            attribution_df, fitness_df = self.eval_attributions(dataset)
             print("Outputting...")
-            self.dump_results(dataframe_attribution, suffix="attributions", data_type=data_type, csv=False)
+            self.dump_results(attribution_df, suffix="attributions", data_type=data_type, csv=False)
             self.dump_results(fitness_df, suffix="fitness", data_type=data_type, csv=True)
 
     def dump_results(self, dataframe, data_type, suffix, csv=True):

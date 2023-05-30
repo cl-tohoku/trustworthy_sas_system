@@ -143,10 +143,8 @@ class Main:
             except Exception as e:
                 print("Error:", e)
 
-    def fitness(self, eval_config_path, **kwargs):
-        eval_config = Util.load_eval_config(eval_config_path)
-        eval_config.update(kwargs)
-        Integration(eval_config).fitness()
+    def fitness(self, eval_dir, script_name, **kwargs):
+        Integration().fitness(eval_dir, script_name)
 
 if __name__ == "__main__":
     fire.Fire(Main)
