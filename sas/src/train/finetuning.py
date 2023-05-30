@@ -15,6 +15,7 @@ import torch.nn.functional as F
 
 sys.path.append("..")
 from library.util import Util
+from library.loss import Loss
 from library.loader import Loader
 
 
@@ -74,7 +75,14 @@ class TrainFinetuning:
         else:
             max_score = sum(self.prompt_config.max_scores)
 
-        self.loss = self.attn_loss(max_score)
+        if "attention" in self.config.loss.lower():
+            self.loss = Loss.attn_loss(max_score)
+        elif "gradient" in self.config.loss.lower():
+            self.loss = Loss.grad_loss(max_score)
+        elif "combination" in self.config.loss.lower():
+            self.loss = Loss.comb_loss(max_score)
+        else:
+            raise RuntimeError("Invalid loss definition")
 
     def set_optimizer(self):
         self.optimizer = AdamW(self.model.parameters(), lr=self.config.learning_rate, weight_decay=1e-2)
@@ -95,32 +103,21 @@ class TrainFinetuning:
         train_dataset = Util.load_dataset(self.config, "train", finetuning=True)
         return train_dataset
 
+    def calc_gradient(self, inputs):
+        embedding_func = self.model.module.bert.embeddings
+        grad_list = [Util.calc_gradient_static(self.model, embedding_func, inputs[0], inputs[1], inputs[2], target=idx)
+                     for idx in range(self.model_config.output_size)]
+        return torch.stack(grad_list).permute(1, 0, 2)
 
-    def calc_int_grad(self, input_ids, token_type_ids, attention_mask, target):
-        self.model.eval()
-        arg = (token_type_ids, attention_mask, False, True)
-        device = "cuda"
-        input_emb = self.model.module.bert.embeddings(input_ids)
-        baseline_emb = torch.zeros(input_emb.shape, device=device)
-
-        saliency = IntegratedGradients(self.model, multiply_by_inputs=True)
-        grad = saliency.attribute(input_emb, baselines=baseline_emb, target=target,
-                                  additional_forward_args=arg, n_steps=512, internal_batch_size=128)
-        self.model.train()
-        return torch.sum(grad, dim=2).to(torch.float32)
-
-    def prediction_with_grad(self, input_ids, token_type_ids, attention_mask, term_idx):
-        input_emb = self.model.module.bert.embeddings(input_ids)
-        prediction = self.model(input_ids=input_emb, token_type_ids=token_type_ids, attention_mask=attention_mask,
-                                inputs_embeds=True)
-        grad = torch.autograd.grad(outputs=prediction[0][term_idx], inputs=input_emb, retain_graph=True)[0]
-        return prediction, torch.sum(grad, dim=2).to(torch.float32)
-
-    def prediction_attn(self, input_ids, token_type_ids, attention_mask, term_idx):
-        input_emb = self.model.module.bert.embeddings(input_ids)
-        prediction, attention = self.model(input_ids=input_emb, token_type_ids=token_type_ids,
-                                           attention_mask=attention_mask, inputs_embeds=True, attention=True)
-        return prediction, attention
+    def prediction(self, inputs):
+        output = self.model(inputs[0], inputs[1], inputs[2], attention=True)
+        if self.config.loss.lower() == "gradient":
+            grad = self.calc_gradient(inputs)
+            output = (output[0], grad)
+        elif self.config.lower() == "combination":
+            grad = self.calc_gradient(inputs)
+            output = output + (grad, )
+        return output
 
     def tensor(self, array):
         return torch.tensor(array, device=self.device).unsqueeze(0)
@@ -134,6 +131,19 @@ class TrainFinetuning:
         annotation = self.tensor(data_rows["annotation_matrix"][term_idx])
         return data_tuple, gold, term_idx, annotation
 
+    def loss_wrapper(self, prediction, gold, annotation, term_idx):
+        if self.config.loss == "attention":
+            return self.loss(prediction=prediction[0], gold=gold, attention=prediction[1],
+                             annotation=annotation, term_idx=term_idx)
+        elif self.config.loss == "gradient":
+            return self.loss(prediction=prediction[0], gold=gold, gradient=prediction[1],
+                             annotation=annotation, term_idx=term_idx)
+        elif self.config.loss == "combination":
+            return self.loss(prediction=prediction[0], gold=gold, attention=prediction[1],
+                             gradient=prediction[2], annotation=annotation, term_idx=term_idx)
+        else:
+            RuntimeError("Invalid loss")
+
     def training_phase(self, train_dataset):
         self.model.train()
         losses = []
@@ -145,19 +155,20 @@ class TrainFinetuning:
 
             # training
             self.optimizer.zero_grad()
-            data_tuple, gold, term_idx, annotation = self.extract_data(data_rows[1])
-            prediction, attention = self.prediction_attn(data_tuple[0], data_tuple[1], data_tuple[2], term_idx)
-            loss = self.loss(prediction, gold, attention, annotation, term_idx)
+            input_tuple, gold, term_idx, annotation = self.extract_data(data_rows[1])
+            prediction_tuple = self.prediction(input_tuple)
+            loss = self.loss_wrapper(prediction_tuple, gold, annotation, term_idx)
             loss.backward()
             self.optimizer.step()
             losses.append(loss.item())
 
         if self.config.wandb:
-            self.log_wandb("train", np.mean(losses), commit=False)
+            self.log_wandb("train", np.mean(losses), commit=True)
+
         return np.mean(losses)
 
     def save_model(self):
-        Util.save_model(self.model, self.config, heuristics=True)
+        Util.save_model(self.model, self.config, finetuning=True)
 
     def is_best(self, valid_loss):
         if valid_loss < self.best_valid_loss:
@@ -171,8 +182,7 @@ class TrainFinetuning:
         train_dataset = self.load_dataset()
 
         # epoch = self.config.epoch
-        epoch = 50
-        for n in range(epoch):
+        for n in range(self.config.epoch):
             epoch = n + 1
             print("epoch:{}".format(epoch))
             train_loss = self.training_phase(train_dataset)

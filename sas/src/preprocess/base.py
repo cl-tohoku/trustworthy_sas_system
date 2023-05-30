@@ -93,12 +93,8 @@ class PreprocessBase:
         scripts, prompt = self.select_preprocessor()(self.config)
 
         # preprocess for ft and bert
-        # ft_scripts = PreprocessFastText(self.config)(scripts)
         bert_scripts = PreprocessBert(self.config)(scripts)
 
         # split & dump
-        # self.split_and_dump_pickle(ft_scripts, "fasttext")
         self.split_and_dump_pickle(bert_scripts, "bert")
-        #self.dump_cross_validation(ft_scripts, "fasttext")
-        #self.dump_cross_validation(bert_scripts, "bert")
         self.dump_prompt(prompt)

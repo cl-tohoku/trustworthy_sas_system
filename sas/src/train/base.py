@@ -118,19 +118,17 @@ class TrainBase:
 
     def predict(self, data_tuple):
         inputs, _ = data_tuple
+        output = self.model(inputs[0], inputs[1], inputs[2], attention=True)
         if self.config.loss == "attention":
-            output = self.model(inputs[0], inputs[1], inputs[2], attention=True)
+            return output
         elif self.config.loss == "gradient":
-            output = self.model(inputs[0], inputs[1], inputs[2], attention=False)
             grad = self.calc_gradient(inputs)
-            output = (output, grad)
+            return output[0], grad
         elif self.config.loss == "combination":
-            output = self.model(inputs[0], inputs[1], inputs[2], attention=True)
             grad = self.calc_gradient(inputs)
-            output = output + (grad, )
+            return output + (grad, )
         else:
-            output = self.model(inputs[0], inputs[1], inputs[2], attention=False)
-        return output
+            return output[0]
 
     def calc_loss(self, prediction, data_tuple):
         inputs, scores = data_tuple

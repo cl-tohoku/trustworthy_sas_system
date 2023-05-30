@@ -116,9 +116,9 @@ class Util:
             return array + [padding_id for i in range(padding_length)]
 
     @staticmethod
-    def save_model(model, config, heuristics=False):
+    def save_model(model, config, finetuning=False):
         experiment_id = config.wandb_name if config.unique_id is None else config.unique_id
-        if heuristics:
+        if finetuning:
             file_name = "{}_{}.{}_{}_{}.state".format(config.script_name, experiment_id,
                                                       config.heuristics, config.term, config.loss)
         elif config.validation:
