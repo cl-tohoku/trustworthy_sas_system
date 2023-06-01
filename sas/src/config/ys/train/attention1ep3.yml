@@ -1,5 +1,5 @@
 script_name: "Y14_1213"
-unique_id: "attention"
+unique_id: "attention1ep3"
 model_name: "bert"
 dataset_dir: "data/pickle/Y14"
 model_dir: "data/model/Y14"
@@ -15,4 +15,4 @@ wandb_entity: "ekupura"
 wandb_project_name: "0529"
 wandb_group: "Y14_1213"
 parallel: true
-attention_lambda: 1.0
+attention_lambda: 1000.0

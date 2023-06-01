@@ -80,11 +80,12 @@ class TrainBase:
         elif "entropy" in self.config.loss.lower():
             RuntimeError("Unimplemented")
         elif "attention" in self.config.loss.lower():
-            self.loss = Loss.attn_loss(max_score)
+            self.loss = Loss.attn_loss(max_score, _lambda=self.config.attention_lambda)
         elif "gradient" in self.config.loss.lower():
-            self.loss = Loss.grad_loss(max_score)
+            self.loss = Loss.grad_loss(max_score, _lambda=self.config.gradient_lambda)
         elif "combination" in self.config.loss.lower():
-            self.loss = Loss.comb_loss(max_score)
+            self.loss = Loss.comb_loss(max_score, _lambda_attn=self.config.attention_lambda,
+                                       _lambda_grad=self.config.gradient_lambda)
         else:
             raise RuntimeError("Invalid loss definition")
 
@@ -143,7 +144,7 @@ class TrainBase:
             return self.loss(prediction=prediction[0], gold=target_score, attention=prediction[1],
                              gradient=prediction[2], annotation=scores[2], term_idx=-1)
         else:
-            return self.loss(input=prediction[0], target=target_score)
+            return self.loss(input=prediction, target=target_score)
 
     def training_phase(self, train_loader):
         self.model.train()

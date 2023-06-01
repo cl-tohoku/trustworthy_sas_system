@@ -106,6 +106,9 @@ class TrainConfig(YAML):
     # finetune
     heuristics: str = ""
     term: str = ""
+    # loss lamnda
+    attention_lambda: float = 1.0
+    gradient_lambda: float = 1.0
 
 
 @dataclass

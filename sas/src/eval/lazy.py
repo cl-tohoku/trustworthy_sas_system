@@ -1,3 +1,5 @@
+import itertools
+
 import torch
 import torch.nn.functional as F
 import sys
@@ -50,22 +52,32 @@ class Integration:
         plt.tight_layout()
         plt.savefig(Path(dir_path) / "{}.png".format(prompt_name))
 
+    @staticmethod
+    def df_filter(df, metric, heuristics):
+        df = pd.DataFrame(df[df["Gold"] > 0][[metric, "Term"]])
+        df["heuristics"] = heuristics
+        return df
+
     def fitness(self, eval_dir, script_name):
         dir_path = Path(eval_dir)  / script_name
-        baseline_none_df = pd.read_pickle(dir_path / "analytic_test_fitness.pkl")
-        baseline_attention_df = pd.read_pickle(dir_path / "attention_test_fitness.pkl")
+        loss_list = ["analytic", "attention", "gradient", "combination"]
 
-        def df_filter(df, metric, heuristics):
-            df = pd.DataFrame(df[df["Gold"] > 0][metric])
-            df["heuristics"] = heuristics
-            return df
+        def print_fitness(metric, data_type="test"):
+            df_list = []
+            for loss_name in loss_list:
+                baseline_df = pd.read_pickle(dir_path / "{}_{}_fitness.pkl".format(loss_name, data_type))
+                baseline_df = self.df_filter(baseline_df, metric=metric, heuristics=loss_name)
+                df_list.append(baseline_df)
 
-        baseline_none_df = df_filter(baseline_none_df, "Recall_Score", heuristics="None")
-        baseline_attention_df = df_filter(baseline_attention_df, "Recall_Score", heuristics="Attention")
+            group_df = pd.concat(df_list)
+            mean = group_df.groupby(["heuristics", "Term"]).mean()
+            print("\ntype: {}".format(data_type))
+            print(mean)
 
-        group_df = pd.concat([baseline_none_df, baseline_attention_df])
-        mean = group_df.groupby("heuristics").mean()
-        print(mean)
+        import itertools
+        type_list = ["train", "test"]
+        for _type in type_list:
+            print_fitness(metric="Recall_Score", data_type=_type)
 
     def __call__(self, prompt_name, eval_dir_path):
         df = self.load_performances(eval_dir_path, prompt_name)
