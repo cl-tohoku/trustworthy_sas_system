@@ -246,7 +246,7 @@ class EvalBase:
         Util.save_eval_df(dataframe, self.config, data_type, suffix, csv, finetuning=self.config.finetuning)
 
     def __call__(self):
-        self.model = Util.load_model(self.config, self.model_config, heuristics=self.config.finetuning)
+        self.model = Util.load_model(self.config, self.model_config, finetuning=self.config.finetuning)
         # test set
         print("Test")
         test_dataset = Util.load_dataset(self.config, "test",)

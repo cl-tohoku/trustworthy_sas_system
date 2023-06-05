@@ -60,13 +60,47 @@ class Integration:
 
     def fitness(self, eval_dir, script_name):
         dir_path = Path(eval_dir)  / script_name
-        loss_list = ["analytic", "attention", "gradient", "combination"]
+        loss_list = ["analytic", "attention1ep1"]
+        finetune_list = ["int-attention-{}", "rand-attention-{}"]
+        term_list = ["a", "b", "c", "d"]
+        template = "{}_{}_fitness.pkl"
+        template_ft = "{}_{}_fitness.finetuning.pkl"
+
+        for data_type in ["train", "test"]:
+            fig, axes = plt.subplots(2, 2, figsize=(15, 8))
+            for idx, term in enumerate(term_list):
+                df_list = []
+                for loss_name in loss_list:
+                    baseline_df = pd.read_pickle(dir_path / template.format(loss_name, data_type))
+                    baseline_df = self.df_filter(baseline_df, metric="Recall_Score", heuristics=loss_name)
+                    baseline_df = baseline_df[baseline_df["Term"] == term.upper()]
+                    df_list.append(baseline_df)
+                for finetune_name in finetune_list:
+                    finetune_fixed = finetune_name.format(term)
+                    baseline_df = pd.read_pickle(dir_path / template_ft.format(finetune_fixed, data_type))
+                    baseline_df = self.df_filter(baseline_df, metric="Recall_Score", heuristics=finetune_fixed)
+                    baseline_df = baseline_df[baseline_df["Term"] == term.upper()]
+                    df_list.append(baseline_df)
+
+                group_df = pd.concat(df_list)
+                ax = axes[idx // 2][idx % 2]
+                sns.barplot(data=group_df, x="Term", y="Recall_Score", hue="heuristics", ax=ax)
+                ax.set(ylim=(0.4, 1.0))
+            os.makedirs(dir_path / "figure", exist_ok=True)
+            plt.savefig(dir_path / "figure" / "{}.png".format(data_type))
+
+    def fitness_ft(self, eval_dir, script_name):
+        dir_path = Path(eval_dir)  / script_name
+        term_list = ["a", "b", "c", "d"]
+        heuristics_list = ["int", "rand"]
+
+        template = "{}-attention-{}_{}_fitness.finetuning.pkl"
 
         def print_fitness(metric, data_type="test"):
             df_list = []
-            for loss_name in loss_list:
-                baseline_df = pd.read_pickle(dir_path / "{}_{}_fitness.pkl".format(loss_name, data_type))
-                baseline_df = self.df_filter(baseline_df, metric=metric, heuristics=loss_name)
+            for term, heuristics in itertools.product(term_list, heuristics_list):
+                baseline_df = pd.read_pickle(dir_path / template.format(heuristics, term, data_type))
+                baseline_df = self.df_filter(baseline_df, metric=metric, heuristics="{}_{}".format(heuristics, term))
                 df_list.append(baseline_df)
 
             group_df = pd.concat(df_list)

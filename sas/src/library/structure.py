@@ -106,6 +106,7 @@ class TrainConfig(YAML):
     # finetune
     heuristics: str = ""
     term: str = ""
+    finetuning_unique_id: str = ""
     # loss lamnda
     attention_lambda: float = 1.0
     gradient_lambda: float = 1.0
@@ -144,7 +145,7 @@ class EvalConfig(YAML):
     cluster_dir: str = "data/cluster/Y14"
     point_type: str = "attribution"
     gold_cluster_dir: str = ""
-    step_size: int = 512
+    step_size: int = 128
     # finetune
     finetuning_dir: str = ""
     finetuning: bool = False

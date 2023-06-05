@@ -110,11 +110,11 @@ class TrainFinetuning:
         return torch.stack(grad_list).permute(1, 0, 2)
 
     def prediction(self, inputs):
-        output = self.model(inputs[0], inputs[1], inputs[2], attention=True)
+        output = self.model(input_ids=inputs[0], token_type_ids=inputs[1], attention_mask=inputs[2], attention=True)
         if self.config.loss.lower() == "gradient":
             grad = self.calc_gradient(inputs)
             output = (output[0], grad)
-        elif self.config.lower() == "combination":
+        elif self.config.loss.lower() == "combination":
             grad = self.calc_gradient(inputs)
             output = output + (grad, )
         return output
@@ -132,8 +132,10 @@ class TrainFinetuning:
         return data_tuple, gold, term_idx, annotation
 
     def loss_wrapper(self, prediction, gold, annotation, term_idx):
+        attention = prediction[1][:, term_idx, :].unsqueeze(1)
+        annotation = annotation.unsqueeze(1)
         if self.config.loss == "attention":
-            return self.loss(prediction=prediction[0], gold=gold, attention=prediction[1],
+            return self.loss(prediction=prediction[0], gold=gold, attention=attention,
                              annotation=annotation, term_idx=term_idx)
         elif self.config.loss == "gradient":
             return self.loss(prediction=prediction[0], gold=gold, gradient=prediction[1],

@@ -1,0 +1,16 @@
+script_name: "Y14_1213"
+model_name: "bert"
+dataset_dir: "data/pickle/Y14"
+model_dir: "data/model/Y14"
+eval_dir: "data/eval/Y14"
+model_config_path: "config/ys/model/bert.yml"
+preprocessing_type: "bert"
+target_type: "analytic"
+unique_id: "int-attention-c"
+attribution: true
+counterfactual: false
+affine_type: "embedding"
+cluster_dir: "data/cluster/Y14"
+point_type: "counter"
+gold_cluster_dir: "data/cluster/Y14/gold_dict"
+finetuning: true
