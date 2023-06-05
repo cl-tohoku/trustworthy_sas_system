@@ -15,6 +15,7 @@ import seaborn as sns
 import Levenshtein
 from sklearn.metrics.cluster import adjusted_rand_score
 from scipy.special import kl_div, rel_entr
+from sklearn.metrics import  recall_score
 
 
 sys.path.append("..")
@@ -31,6 +32,7 @@ class Clustering2:
     def __init__(self, config_path):
         self.config = config_path
         self.prompt_config = Util.load_prompt(self.config)
+        self.selection_size = 5
 
     def load_attribution_results(self, data_type="train"):
         suffix = "attributions"
@@ -104,6 +106,18 @@ class Clustering2:
             div_list.append(div)
         return div_list
 
+    def calc_overlap_ratio(self, centroid_df):
+        annotation, attribution = centroid_df["Annotation"].to_list(), centroid_df["Attribution"].to_list()
+        recall_list = []
+        for anot, attr in zip(annotation, attribution):
+            anot = np.array(anot)
+            justification_size = np.sum(anot)
+            attribution_idx = np.argsort(attr)[::-1][:justification_size]
+            binary_attribution = np.zeros(len(attr))
+            binary_attribution[attribution_idx] = 1
+            recall_list.append(recall_score(y_true=anot, y_pred=binary_attribution, zero_division=1))
+        return recall_list
+
     def calc_int_grad_division(self, centroid_df):
         anot_list, attr_list = centroid_df["Annotation"].to_list(), centroid_df["Attribution"].to_list()
         div_list = []
@@ -113,14 +127,15 @@ class Clustering2:
         return div_list
 
     def calc_removed_idx(self, distance_list, merged_df):
-        arg_list = np.argsort(distance_list)[::-1]
+        arg_list = np.argsort(distance_list)
         removed_idx = []
+        minimum_size = len(merged_df) // self.selection_size
         for small_arg in arg_list:
             cluster_idx = merged_df[merged_df["Number"] == small_arg]["Idx"]
             removed_idx.extend(cluster_idx.to_list())
-            if len(removed_idx) > 10:
+            if len(removed_idx) > minimum_size:
                 break
-        return removed_idx
+        return removed_idx[:minimum_size]
 
     def calc_random_idx(self, length, size):
         return random.sample(range(length), size)
@@ -140,17 +155,13 @@ class Clustering2:
 
         # calc kl-divergence for centroid
         centroid_df = merged_df.iloc[centroid_idx_list]
-        kl_list = self.calc_kl_divergence(centroid_df)
-        int_list = self.calc_int_grad_division(centroid_df)
+        overlap_list = self.calc_overlap_ratio(centroid_df)
 
         # removed idx
-        kl_removed_idx = self.calc_removed_idx(kl_list, merged_df)
-        int_removed_idx = self.calc_removed_idx(int_list, merged_df)
+        removed_idx = self.calc_removed_idx(overlap_list, merged_df)
         heuristic_df = pd.DataFrame(merged_df[["Sample_ID", "Term"]])
-        heuristic_df["KL"] = merged_df["Idx"].isin(kl_removed_idx)
-        heuristic_df["Int"] = merged_df["Idx"].isin(int_removed_idx)
-        heuristic_df["KL_Rand"] = merged_df["Idx"].isin(self.calc_random_idx(len(merged_df.index), len(kl_removed_idx)))
-        heuristic_df["Int_Rand"] = merged_df["Idx"].isin(self.calc_random_idx(len(merged_df.index), len(int_removed_idx)))
+        heuristic_df["Overlap"] = merged_df["Idx"].isin(removed_idx)
+        heuristic_df["Rand"] = merged_df["Idx"].isin(self.calc_random_idx(len(merged_df.index), len(removed_idx)))
         heuristic_df = heuristic_df.replace({True: 1, False: 0})
 
         return heuristic_df
@@ -201,8 +212,7 @@ class Clustering2:
                 # plot dendrogram & save clustering ID
                 cluster_df_list = self.plot_dendrogram_range(hierarchy, output_dir)
                 # select for heuristic
-                selection_size = 10
-                merge_df = self.heuristic_selector(data_df, cluster_df_list[selection_size - 1], attributions)
+                merge_df = self.heuristic_selector(data_df, cluster_df_list[self.selection_size - 1], attributions)
                 os.makedirs(Path(self.config.finetuning_dir) / data_type / setting_dir, exist_ok=True)
                 merge_df.to_pickle(Path(self.config.finetuning_dir) / data_type / setting_dir / "heuristic.xz.pkl", compression="xz")
 

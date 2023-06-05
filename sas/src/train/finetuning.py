@@ -12,6 +12,7 @@ import uuid
 import datetime
 from captum.attr import IntegratedGradients
 import torch.nn.functional as F
+from pprint import pprint
 
 sys.path.append("..")
 from library.util import Util
@@ -184,6 +185,7 @@ class TrainFinetuning:
         train_dataset = self.load_dataset()
 
         # epoch = self.config.epoch
+        pprint(self.config)
         for n in range(self.config.epoch):
             epoch = n + 1
             print("epoch:{}".format(epoch))

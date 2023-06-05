@@ -61,10 +61,12 @@ class Integration:
     def fitness(self, eval_dir, script_name):
         dir_path = Path(eval_dir)  / script_name
         loss_list = ["analytic", "attention1ep1"]
-        finetune_list = ["int-attention-{}", "rand-attention-{}"]
+        finetune_list = ["overlap-attention-{}", "rand-attention-{}"]
+        # finetune_list = ["overlap-attention-{}"]
         term_list = ["a", "b", "c", "d"]
         template = "{}_{}_fitness.pkl"
         template_ft = "{}_{}_fitness.finetuning.pkl"
+        replace_dict = {"analytic": "MSE", "attention1ep1": "Attention"}
 
         for data_type in ["train", "test"]:
             fig, axes = plt.subplots(2, 2, figsize=(15, 8))
@@ -83,6 +85,8 @@ class Integration:
                     df_list.append(baseline_df)
 
                 group_df = pd.concat(df_list)
+                term_dict ={"overlap-attention-{}".format(term): "Overlap", "rand-attention-{}".format(term): "Rand"}
+                group_df = group_df.replace(dict(**replace_dict, **term_dict))
                 ax = axes[idx // 2][idx % 2]
                 sns.barplot(data=group_df, x="Term", y="Recall_Score", hue="heuristics", ax=ax)
                 ax.set(ylim=(0.4, 1.0))
@@ -92,7 +96,7 @@ class Integration:
     def fitness_ft(self, eval_dir, script_name):
         dir_path = Path(eval_dir)  / script_name
         term_list = ["a", "b", "c", "d"]
-        heuristics_list = ["int", "rand"]
+        heuristics_list = ["overlap", "rand"]
 
         template = "{}-attention-{}_{}_fitness.finetuning.pkl"
 

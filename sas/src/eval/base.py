@@ -11,6 +11,7 @@ from itertools import islice
 import numpy as np
 from transformers import BertJapaneseTokenizer
 from sklearn.metrics import recall_score, precision_score
+from pprint import pprint
 
 sys.path.append("..")
 from library.util import Util
@@ -248,6 +249,7 @@ class EvalBase:
     def __call__(self):
         self.model = Util.load_model(self.config, self.model_config, finetuning=self.config.finetuning)
         # test set
+        pprint(self.config)
         print("Test")
         test_dataset = Util.load_dataset(self.config, "test",)
         self.eval(test_dataset, "test")
