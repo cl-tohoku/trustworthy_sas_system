@@ -12,6 +12,7 @@ from eval.base import EvalBase
 from eval.lazy import Integration
 from eval.base import EvalStatic
 from eval.clustering import Clustering2
+from eval.finetuning import EvalFinetuning
 
 class Main:
     def __init__(self, ):
@@ -110,38 +111,12 @@ class Main:
     def finetuning_train(self, train_config_path, **kwargs):
         config = Util.load_train_config(train_config_path)
         config.update(kwargs)
-        TrainFinetuning(config).finetune()
+        TrainFinetuning(config).execute()
 
-    def finetrain_comb(self, train_config_path, heuristics_list, term_list, **kwargs):
-        heuristics_list = [str(x) for x in heuristics_list.split(" ")]
-        term_list = [str(x) for x in term_list.split(" ")]
-        for heuristics, term in product(heuristics_list, term_list):
-            print(heuristics, term)
-            config = Util.load_train_config(train_config_path)
-            config.update({"heuristics": heuristics, "term": term})
-            config.update(kwargs)
-            try:
-                TrainFinetuning(config).finetune()
-            except Exception as e:
-                print("Error:", e)
-
-    def finetuning_eval(self, eval_config_path, **kwargs):
-        config = Util.load_train_config(eval_config_path)
+    def finetuning_eval(self, eval_config_path, given_term, **kwargs):
+        config = Util.load_eval_config(eval_config_path)
         config.update(kwargs)
-        EvalBase(config)()
-
-    def fineeval_comb(self, eval_config_path, heuristics_list, term_list, **kwargs):
-        heuristics_list = [str(x) for x in heuristics_list.split(" ")]
-        term_list = [str(x) for x in term_list.split(" ")]
-        for heuristics, term in product(heuristics_list, term_list):
-            print(heuristics, term)
-            config = Util.load_eval_config(eval_config_path)
-            config.update({"heuristics": heuristics, "term": term, "finetuning": True})
-            config.update(kwargs)
-            try:
-                EvalBase(config)()
-            except Exception as e:
-                print("Error:", e)
+        EvalFinetuning(config).execute(given_term=given_term)
 
     def fitness(self, eval_dir, script_name, **kwargs):
         Integration().fitness(eval_dir, script_name)

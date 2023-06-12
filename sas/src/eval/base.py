@@ -171,7 +171,7 @@ class EvalBase:
                 pred_value_list = output.squeeze(0).cpu().tolist()
 
 
-            sentence_vector = self.get_sentence_vector(script)
+            # sentence_vector = self.get_sentence_vector(script)
             for target in range(len(gold_label)):
                 alpha = string.ascii_uppercase[target]
                 if annotation_matrix:
@@ -182,32 +182,24 @@ class EvalBase:
                 results["Gold"].append(gold_label[target])
                 results["Pred"].append(pred_label[target])
 
-                # deprecated
-                results["Idx"].append(idx)
+                # use for visualizer
                 results["Sample_ID"].append(idx)
                 results["Term"].append(alpha)
                 results["Max_Score"].append(self.get_max_score(target))
-
-                # for finetuning
-                results["Sentence_Vector"].append(sentence_vector)
                 input_np = input_ids.squeeze(0).to("cpu").numpy()
                 results["Token"].append(self.id_to_string_list(input_np))
-                results["Input_IDs"].append(input_np)
-                results["Token_Type_IDs"].append(args[0].squeeze(0).to("cpu").numpy())
-                results["Attention_Mask"].append(args[1].squeeze(0).to("cpu").numpy())
-                results["Score_Vector"].append(gold_label)
 
                 # for xai
                 attribution, int_grad, emb, baseline_value = attr.calc_gradient(input_ids, target, args, multiply=True)
                 prediction_value = pred_value_list[target]
                 results["Attribution"].append(attribution)
                 results["Integrated_Gradients"].append(int_grad)
-                results["Embedding"].append(emb)
-                results["Baseline_Value"].append(baseline_value)
-                results["Prediction_Value"].append(prediction_value)
-                results["Attribution_Value"].append(float(np.sum(int_grad)))
+                #results["Embedding"].append(emb)
+                #results["Baseline_Value"].append(baseline_value)
+                #results["Prediction_Value"].append(prediction_value)
+                #results["Attribution_Value"].append(float(np.sum(int_grad)))
 
-                # xai eval
+                # xai eval (fitness(
                 int_score = self.int_grad_metric(attribution, annotation_matrix[target])
                 recall, precision = self.overlap_metric(attribution, annotation_matrix[target])
                 fitness["Gold"].append(gold_label[target])

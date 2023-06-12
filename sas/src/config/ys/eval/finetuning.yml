@@ -6,7 +6,7 @@ eval_dir: "data/eval/Y14"
 model_config_path: "config/ys/model/bert.yml"
 preprocessing_type: "bert"
 target_type: "analytic"
-unique_id: "int-attention-c"
+unique_id: "finetuning"
 attribution: true
 counterfactual: false
 affine_type: "embedding"

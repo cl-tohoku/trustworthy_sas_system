@@ -170,8 +170,7 @@ class Visualizer:
         cluster_list, idx_list = zip(*(sorted(zip(cluster_id, idx_list))))
         cluster_list, idx_list = [int(i) for i in cluster_list], [int(i) for i in idx_list]
 
-        # print([np.sum(np.array(cluster_id) == i + 1) for i in range(k)])
-        df = pd.DataFrame({"Number": cluster_list, "Idx": idx_list})
+        df = pd.DataFrame({"Number": cluster_list, "Number_ID": idx_list})
         return df
 
     @staticmethod

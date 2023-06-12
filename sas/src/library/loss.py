@@ -63,18 +63,23 @@ class Loss:
         device = "cuda" if torch.cuda.is_available() else "cpu"
         prompt_score = torch.tensor(prompt_score).to(device)
 
-        def loss_fn(prediction, gold, attention, annotation, term_idx=None):
+        def loss_fn(prediction, gold, attention, annotation, term_idx=-1, use_attention=True):
             # ordinal mse loss
             pred_score_fixed = prediction / prompt_score
             true_score_fixed = gold / prompt_score
             loss_first = F.mse_loss(pred_score_fixed, true_score_fixed)
 
-            # attntion loss, attention mse
-            selected_attn = attention
-            fixed_annotation = torch.softmax((annotation - 1.0) * 1e+10, dim=2)
-            #tmp1, tmp2 = selected_attn[0][0], fixed_annotation[0][0]
+            # attention loss
+            if use_attention:
+                selected_attn = attention
+                fixed_annotation = torch.softmax((annotation - 1.0) * 1e+10, dim=2)
+                if term_idx == -1:
+                    loss_second = F.mse_loss(selected_attn, fixed_annotation)
+                else:
+                    loss_second = F.mse_loss(selected_attn[:, term_idx, :], fixed_annotation[:, term_idx, :])
+            else:
+                loss_second = 0.0
 
-            loss_second = F.mse_loss(selected_attn, fixed_annotation)
             loss = loss_first + _lambda * loss_second
 
             print('\rLoss:{:.5f}, Loss_1:{:.5f}, Loss_2:{:.10f}, '.format(loss, loss_first, loss_second, ), end='')

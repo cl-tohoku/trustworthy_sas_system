@@ -39,13 +39,6 @@ class Clustering2:
         df = Util.load_eval_df(self.config, data_type, suffix)
         return df
 
-    def mask_attribution(self, attributions, annotations, check=1):
-        for i_idx, annotation in tqdm(enumerate(annotations)):
-            for j_idx, anot in enumerate(annotation):
-                if anot == check:
-                    attributions[i_idx][j_idx] = [0.0 for _ in range(768)]
-        return attributions
-
     def select_attribution(self, df, point_type):
         if point_type == "embedding":
             attributions = Selector.mean(df["Embedding"].to_list())
@@ -68,13 +61,6 @@ class Clustering2:
         # Hierarchical
         clustering_instance = HierarchicalClustering()
         hierarchy = clustering_instance.linkage(attributions)
-        # root_node = clustering_instance.to_tree()
-        # HDBSCAN
-        # dbscan = DBSCANAnalyzer()
-        # db_label = dbscan.hdbscan(attributions)
-        # Spectrum Clustering
-        # sc = SpectralClustering(n_clusters=cluster_size)
-        # sc_label = sc.fit_predict(attributions)
         hc_label = clustering_instance.fcluster(t=cluster_size)
         return hierarchy, hc_label,
 
@@ -96,75 +82,6 @@ class Clustering2:
         integrated_df["Preprocessing"] = self.config.preprocessing_type
         return integrated_df
 
-    def calc_kl_divergence(self, centroid_df):
-        anot_list, attr_list = centroid_df["Annotation"].to_list(), centroid_df["Attribution"].to_list()
-        div_list = []
-        for anot, attr in zip(anot_list, attr_list):
-            anot, attr = np.array(anot).astype(np.float), np.array(attr)
-            attr[attr < 0.0] = 1e-10
-            div = sum(rel_entr(anot, attr))
-            div_list.append(div)
-        return div_list
-
-    def calc_overlap_ratio(self, centroid_df):
-        annotation, attribution = centroid_df["Annotation"].to_list(), centroid_df["Attribution"].to_list()
-        recall_list = []
-        for anot, attr in zip(annotation, attribution):
-            anot = np.array(anot)
-            justification_size = np.sum(anot)
-            attribution_idx = np.argsort(attr)[::-1][:justification_size]
-            binary_attribution = np.zeros(len(attr))
-            binary_attribution[attribution_idx] = 1
-            recall_list.append(recall_score(y_true=anot, y_pred=binary_attribution, zero_division=1))
-        return recall_list
-
-    def calc_int_grad_division(self, centroid_df):
-        anot_list, attr_list = centroid_df["Annotation"].to_list(), centroid_df["Attribution"].to_list()
-        div_list = []
-        for anot, attr in zip(anot_list, attr_list):
-            anot, attr = np.array(anot), np.array(attr)
-            div_list.append(sum(attr[anot == 1]) / sum(attr))
-        return div_list
-
-    def calc_removed_idx(self, distance_list, merged_df):
-        arg_list = np.argsort(distance_list)
-        removed_idx = []
-        minimum_size = len(merged_df) // self.selection_size
-        for small_arg in arg_list:
-            cluster_idx = merged_df[merged_df["Number"] == small_arg]["Idx"]
-            removed_idx.extend(cluster_idx.to_list())
-            if len(removed_idx) > minimum_size:
-                break
-        return removed_idx[:minimum_size]
-
-    def calc_random_idx(self, length, size):
-        return random.sample(range(length), size)
-
-    def heuristic_selector(self, data_df, cluster_df, vectors):
-        merged_df = pd.merge(data_df, cluster_df, on="Idx")
-        cluster_id_list = sorted(merged_df["Number"].unique())
-
-        # calc centroid
-        centroid_idx_list = []
-        for c_id in cluster_id_list:
-            part_df = merged_df[merged_df["Number"] == c_id].reset_index(drop=True)
-            part_vectors = vectors[part_df["Idx"]]
-            centroid = np.mean(part_vectors, axis=0)
-            l2 = np.sqrt(np.sum((part_vectors - centroid) ** 2, axis=1))
-            centroid_idx_list.append(part_df.iloc[np.argmin(l2)]["Idx"])
-
-        # calc kl-divergence for centroid
-        centroid_df = merged_df.iloc[centroid_idx_list]
-        overlap_list = self.calc_overlap_ratio(centroid_df)
-
-        # removed idx
-        removed_idx = self.calc_removed_idx(overlap_list, merged_df)
-        heuristic_df = pd.DataFrame(merged_df[["Sample_ID", "Term"]])
-        heuristic_df["Overlap"] = merged_df["Idx"].isin(removed_idx)
-        heuristic_df["Rand"] = merged_df["Idx"].isin(self.calc_random_idx(len(merged_df.index), len(removed_idx)))
-        heuristic_df = heuristic_df.replace({True: 1, False: 0})
-
-        return heuristic_df
 
     def load_data_dict(self, file_path):
         with open(file_path, "rb") as f:
@@ -179,7 +96,7 @@ class Clustering2:
         Visualizer.tsne(cluster_id=label, matrix=attributions, output_path=figure_path,
                         score_list=score_list, figsize=figsize)
 
-    def plot_dendrogram_range(self, hierarchy, output_path):
+    def save_dendrogram_range(self, hierarchy, attribution, sample_id, vector, output_path,):
         cluster_df_list = []
         for k in tqdm(range(2, 31)):
             figsize = (2, k)
@@ -187,6 +104,9 @@ class Clustering2:
             os.makedirs(k_path, exist_ok=True)
             figure_path = k_path / "dendrogram.png"
             cluster_df = Visualizer.dendrogram(hierarchy=hierarchy, output_path=figure_path, figsize=figsize, k=k)
+            attr_df = pd.DataFrame({"Attribution": attribution.tolist(), "Vector": vector.tolist(),
+                                    "Sample_ID": sample_id.to_list()})
+            cluster_df = cluster_df.merge(right=attr_df, left_on="Number_ID", right_index=True).sort_index()
             df_path = k_path / "cluster.pkl"
             cluster_df.to_pickle(df_path)
             cluster_df_list.append(cluster_df)
@@ -210,11 +130,12 @@ class Clustering2:
                 # plot t-sne
                 self.plot_tsne(attributions, label=hc_id, score_list=score_list, output_path=output_dir)
                 # plot dendrogram & save clustering ID
-                cluster_df_list = self.plot_dendrogram_range(hierarchy, output_dir)
+                _ = self.save_dendrogram_range(hierarchy, attribution=part_df["Attribution"], sample_id=part_df["Sample_ID"],
+                                               vector=attributions, output_path=output_dir)
                 # select for heuristic
-                merge_df = self.heuristic_selector(data_df, cluster_df_list[self.selection_size - 1], attributions)
-                os.makedirs(Path(self.config.finetuning_dir) / data_type / setting_dir, exist_ok=True)
-                merge_df.to_pickle(Path(self.config.finetuning_dir) / data_type / setting_dir / "heuristic.xz.pkl", compression="xz")
+                # merge_df = self.heuristic_selector(data_df, cluster_df_list[self.selection_size - 1], attributions)
+                # os.makedirs(Path(self.config.finetuning_dir) / data_type / setting_dir, exist_ok=True)
+                # merge_df.to_pickle(Path(self.config.finetuning_dir) / data_type / setting_dir / "heuristic.xz.pkl", compression="xz")
 
         print("Train set")
         train_df = self.load_attribution_results(data_type="train")

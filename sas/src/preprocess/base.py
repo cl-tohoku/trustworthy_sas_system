@@ -34,9 +34,7 @@ class PreprocessBase:
 
         # dump
         os.makedirs(self.config.dataset_dir, exist_ok=True)
-        #  with open(Path(self.config.dataset_dir) / file_name, "wb") as f:
-        #     pickle.dump(class_dataset, f)
-        class_dataset.to_pickle(Path(self.config.dataset_dir) / file_name)
+        class_dataset.reset_index(drop=True).to_pickle(Path(self.config.dataset_dir) / file_name)
 
     def select_preprocessor(self):
         if self.config.dataset_type.lower() == "ys":

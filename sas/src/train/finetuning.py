@@ -1,3 +1,6 @@
+import string
+
+import pandas as pd
 import torch
 import wandb
 from transformers import AdamW
@@ -41,7 +44,7 @@ class TrainFinetuning:
             self.model_config.output_size = 1
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.config.learning_rate = 5e-6
+        self.config.learning_rate = 1e-6
 
     def initialize(self,):
         if self.config.wandb:
@@ -100,8 +103,8 @@ class TrainFinetuning:
     def log_wandb(self, phase, loss, commit=True):
         wandb.log({"{}_loss".format(phase): loss}, commit=commit)
 
-    def load_dataset(self):
-        train_dataset = Util.load_dataset(self.config, "train", finetuning=True)
+    def load_dataset(self, term, cluster_size, selection_size):
+        train_dataset = Util.load_finetuning_dataset(self.config, "train", term, cluster_size, selection_size)
         return train_dataset
 
     def calc_gradient(self, inputs):
@@ -128,16 +131,16 @@ class TrainFinetuning:
         ii, tti, am = self.tensor(ii), self.tensor(tti), self.tensor(am)
         data_tuple = (ii, tti, am)
         gold = self.tensor(data_rows["score_vector"])
-        term_idx = ord(data_rows["term"]) - 65
-        annotation = self.tensor(data_rows["annotation_matrix"][term_idx])
-        return data_tuple, gold, term_idx, annotation
+        annotation = self.tensor(data_rows["annotation_matrix"])
+        use_heuristics = bool(data_rows["Heuristics"])
+        return data_tuple, gold, annotation, use_heuristics
 
-    def loss_wrapper(self, prediction, gold, annotation, term_idx):
-        attention = prediction[1][:, term_idx, :].unsqueeze(1)
-        annotation = annotation.unsqueeze(1)
+    def loss_wrapper(self, prediction, gold, annotation, term_idx, use_heuristics):
+        attention = prediction[1]
+        annotation = annotation
         if self.config.loss == "attention":
             return self.loss(prediction=prediction[0], gold=gold, attention=attention,
-                             annotation=annotation, term_idx=term_idx)
+                             annotation=annotation, term_idx=term_idx, use_attention=use_heuristics)
         elif self.config.loss == "gradient":
             return self.loss(prediction=prediction[0], gold=gold, gradient=prediction[1],
                              annotation=annotation, term_idx=term_idx)
@@ -147,20 +150,23 @@ class TrainFinetuning:
         else:
             RuntimeError("Invalid loss")
 
-    def training_phase(self, train_dataset):
+    def choice_dataset(self, dataset_df):
+        heuristics_size = (dataset_df["Heuristics"] == True).sum()
+        heuristics_df = dataset_df[dataset_df["Heuristics"] == True]
+        normal_df = dataset_df[dataset_df["Heuristics"] == False].sample(n=heuristics_size, replace=False)
+        return pd.concat([heuristics_df, normal_df]).sample(frac=1, random_state=42)
+
+    def training_phase(self, train_dataset, term):
         self.model.train()
         losses = []
+        term_idx = ord(term) - 65
 
         for idx, data_rows in enumerate(train_dataset.iterrows()):
-            # filter
-            if data_rows[1]["heuristics"] != self.config.heuristics or data_rows[1]["term"] != self.config.term:
-                continue
-
             # training
             self.optimizer.zero_grad()
-            input_tuple, gold, term_idx, annotation = self.extract_data(data_rows[1])
+            input_tuple, gold, annotation, use_heuristics = self.extract_data(data_rows[1])
             prediction_tuple = self.prediction(input_tuple)
-            loss = self.loss_wrapper(prediction_tuple, gold, annotation, term_idx)
+            loss = self.loss_wrapper(prediction_tuple, gold, annotation, term_idx, use_heuristics)
             loss.backward()
             self.optimizer.step()
             losses.append(loss.item())
@@ -170,8 +176,8 @@ class TrainFinetuning:
 
         return np.mean(losses)
 
-    def save_model(self):
-        Util.save_model(self.model, self.config, finetuning=True)
+    def save_model(self, term, cluster_size, selection_size):
+        Util.save_finetuning_model(self.model, self.config, term, cluster_size, selection_size)
 
     def is_best(self, valid_loss):
         if valid_loss < self.best_valid_loss:
@@ -180,16 +186,27 @@ class TrainFinetuning:
         else:
             return False
 
-    def finetune(self):
+    def finetune(self, term, cluster_size, selection_size):
         self.initialize()
-        train_dataset = self.load_dataset()
+        print("term: {}, c_size: {}, s_size: {}".format(term, cluster_size, selection_size))
+        train_dataset = self.load_dataset(term, cluster_size, selection_size)
 
         # epoch = self.config.epoch
         pprint(self.config)
-        for n in range(self.config.epoch):
-            epoch = n + 1
-            print("epoch:{}".format(epoch))
-            train_loss = self.training_phase(train_dataset)
+        used_sample_size = 0
+        while used_sample_size < 10000:
+            choice_df = self.choice_dataset(train_dataset)
+            print("used sample size:{}".format(used_sample_size))
+            train_loss = self.training_phase(choice_df, term)
             print("train loss: {:.5f}".format(train_loss))
-            if self.is_best(train_loss) or epoch == 1:
-                self.save_model()
+            if self.is_best(train_loss) or used_sample_size == 0:
+                self.save_model(term, cluster_size, selection_size)
+            used_sample_size += len(choice_df)
+
+    def execute(self):
+        term_list = list(string.ascii_uppercase)[:self.model_config.output_size]
+        cluster_list, selection_list = list(range(10, 11)), list(range(3, 11))
+
+        from itertools import product
+        for term, cluster_size, selection_size in product(term_list, cluster_list, selection_list):
+            self.finetune(term, cluster_size, selection_size)
