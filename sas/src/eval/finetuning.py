@@ -61,7 +61,7 @@ class EvalFinetuning(EvalBase):
 
     def execute(self, given_term="A"):
         # term_list = list(string.ascii_uppercase)[:self.model_config.output_size][:1]
-        cluster_list, selection_list = list(range(10, 11)), list(range(3, 11))
+        cluster_list, selection_list = list(range(10, 11)), list(range(6, 11))
         for cluster_size, selection_size in product(cluster_list, selection_list):
             print("term: {}, c_size: {}, s_size: {}".format(given_term, cluster_size, selection_size))
             self.term, self.cluster_size, self.selection_size = given_term, cluster_size, selection_size

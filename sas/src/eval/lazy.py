@@ -117,6 +117,29 @@ class Integration:
         for _type in type_list:
             print_fitness(metric="Recall_Score", data_type=_type)
 
+    def fitness_tmp(self, eval_dir, script_name):
+        dir_path = Path(eval_dir)  / script_name
+        # load baseline
+        analytic_df = pd.read_pickle(dir_path / "analytic_train_fitness.pkl")
+        analytic_df["method"] = "mse"
+        attention_df = pd.read_pickle(dir_path / "attention1ep1_train_fitness.pkl")
+        attention_df["method"] = "attention"
+        # load finetuning
+        df_list = []
+        for idx in range(3, 9):
+            df = pd.read_pickle(dir_path / "finetuning" / "finetuning_train_fitness.A.c10.s{}.pkl".format(idx))
+            df["method"] = "selection-{}".format(idx)
+            df_list.append(df)
+        # integrate
+        df_list.extend([analytic_df, attention_df])
+        df_list = [df[df["Gold"] > 0.0] for df in df_list]
+        df_list = [df[df["Term"] == "A"] for df in df_list]
+        integrated_df = pd.concat(df_list)
+        print(integrated_df.groupby("method").mean()["Recall_Score"])
+        print(integrated_df.groupby("method").std())
+        print("")
+
+
     def __call__(self, prompt_name, eval_dir_path):
         df = self.load_performances(eval_dir_path, prompt_name)
         df = df.sort_values(by='size')
