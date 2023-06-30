@@ -68,6 +68,12 @@ class Util:
         return pd.read_pickle(file_path)
 
     @staticmethod
+    def load_dataset_static(script_name, prep_type, data_type, dataset_dir):
+        file_name = "{}.{}.{}.pkl".format(script_name, prep_type, data_type)
+        file_path = Path(dataset_dir) / file_name
+        return pd.read_pickle(file_path)
+
+    @staticmethod
     def load_finetuning_dataset(config, data_type, term, cluster_size, selection_size):
         prep_type = config.preprocessing_type
         file_name = "{}.{}.{}.{}.c{}.s{}.pkl".format(config.script_name, prep_type, data_type,

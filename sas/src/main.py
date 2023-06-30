@@ -5,6 +5,7 @@ from itertools import product
 from library.util import Util
 from preprocess.base import PreprocessBase
 from preprocess.finetuning import PreprocessFinetuning
+from preprocess.masking import PreprocessMasking
 from train.base import TrainBase
 from train.base import TrainStatic
 from train.finetuning import TrainFinetuning
@@ -121,6 +122,10 @@ class Main:
     def fitness(self, eval_dir, cluster_dir, script_name, **kwargs):
         Integration().quantitative_fitness(eval_dir, cluster_dir, script_name)
 
+    def masking_preprocess(self, prep_config_path, term, masking_span, **kwargs):
+        config = Util.load_preprocess_config(prep_config_path)
+        config.update(kwargs)
+        PreprocessMasking(config)(masking_span)
 
 if __name__ == "__main__":
     fire.Fire(Main)
