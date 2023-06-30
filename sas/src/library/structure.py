@@ -145,7 +145,7 @@ class EvalConfig(YAML):
     cluster_dir: str = "data/cluster/Y14"
     point_type: str = "attribution"
     gold_cluster_dir: str = ""
-    step_size: int = 128
+    step_size: int = 512
     # finetune
     finetuning_dir: str = ""
     finetuning: bool = False

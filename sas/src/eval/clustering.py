@@ -103,6 +103,7 @@ class Clustering2:
             k_path = output_path / str(k)
             os.makedirs(k_path, exist_ok=True)
             figure_path = k_path / "dendrogram.png"
+            # Sample ID -> table of correspondences, Number ID -> cluster index
             cluster_df = Visualizer.dendrogram(hierarchy=hierarchy, output_path=figure_path, figsize=figsize, k=k)
             attr_df = pd.DataFrame({"Attribution": attribution.tolist(), "Vector": vector.tolist(),
                                     "Sample_ID": sample_id.to_list()})

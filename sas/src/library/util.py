@@ -201,6 +201,12 @@ class Util:
         dataframe.to_pickle((Path(config.eval_dir) / config.script_name / "finetuning" / pkl_file_name))
 
     @staticmethod
+    def load_eval_df(config, data_type, suffix):
+        file_name = "{}_{}_{}.pkl".format(config.unique_id, data_type, suffix)
+        df = pd.read_pickle((Path(config.eval_dir) / config.script_name / file_name))
+        return df
+
+    @staticmethod
     def load_finetuning_df(config, data_type, suffix, term, cluster_size, selection_size):
         file_name = "{}_{}_{}.{}.c{}.s{}.pkl".format(config.unique_id, data_type, suffix, term, cluster_size, selection_size)
         df = pd.read_pickle((Path(config.eval_dir) / config.script_name / "finetuning" / file_name))

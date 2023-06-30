@@ -16,6 +16,8 @@ import copy
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 from sklearn.feature_extraction.text import CountVectorizer
+from scipy import stats
+
 
 sys.path.append("..")
 from library.util import Util
@@ -138,6 +140,88 @@ class Integration:
         print(integrated_df.groupby("method").mean()["Recall_Score"])
         print(integrated_df.groupby("method").std())
         print("")
+
+    def quantitative_random(self, analytic_df, trial_size=10000):
+        sample_size_list = [idx for idx in range(20, 101, 20)]
+        mean_dict, std_dict = defaultdict(list), defaultdict(list)
+        for sample_size in tqdm(sample_size_list):
+            for idx in range(trial_size):
+                sample_df = analytic_df.sample(n=sample_size)
+                mean_dict[sample_size].append(sample_df["Recall_Score"].mean())
+                std_dict[sample_size].append(sample_df["Recall_Score"].std())
+        # plot
+        fig, axes = plt.subplots(2, len(sample_size_list), figsize=(20, 5))
+        for idx, sample_size in enumerate(mean_dict.keys()):
+            sns.histplot(mean_dict[sample_size], ax=axes[0][idx], binwidth=0.005)
+            sns.histplot(std_dict[sample_size], ax=axes[1][idx], binwidth=0.005)
+            axes[0][idx].set_xlim(0.55, 0.7)
+            axes[1][idx].set_xlim(0.05, 0.20)
+            axes[0][idx].set_title("Mean, Sample size = {}".format(sample_size))
+            axes[1][idx].set_title("Std, Sample size = {}".format(sample_size))
+        plt.tight_layout()
+        plt.savefig("tmp/random_fitness.png".format())
+
+    def quantitative_clustering(self, analytic_df, cluster_df, trial_size=10000, cluster_size=10):
+        # pass
+        selection_size_list = [2, 4, 6, 8, 10]
+        mean_dict, std_dict = defaultdict(list), defaultdict(list)
+        size_dict = {}
+        for i, sample_size in enumerate(selection_size_list):
+            print("\nSelection size: {}".format(sample_size))
+            sample_df = cluster_df.groupby("Number").apply(lambda x: self.sample(x, n=sample_size)).reset_index(drop=True)
+            size_dict[i] = sample_df.groupby("Number")["Number_ID"].count().sum()
+            for idx in tqdm(range(trial_size)):
+                sample_df = cluster_df.groupby("Number").apply(lambda x: self.sample(x, n=sample_size)).reset_index(drop=True)
+                merged_df = analytic_df.merge(right=sample_df, left_on="Sample_ID", right_on="Sample_ID")
+                mean_array = merged_df.groupby("Number")["Recall_Score"].mean().to_numpy()
+                std_array = merged_df.groupby("Number")["Recall_Score"].std().to_numpy()
+                size_array = cluster_df.groupby("Number")["Number_ID"].count().to_numpy()
+                size_array = size_array / np.sum(size_array)
+                mean_dict[sample_size].append(np.average(mean_array, weights=size_array))
+                std_dict[sample_size].append(np.average(std_array, weights=size_array))
+
+        # plot
+        fig, axes = plt.subplots(2, len(selection_size_list), figsize=(20, 5))
+        for idx, sample_size in enumerate(mean_dict.keys()):
+            sns.histplot(mean_dict[sample_size], ax=axes[0][idx], binwidth=0.005)
+            sns.histplot(std_dict[sample_size], ax=axes[1][idx], binwidth=0.005)
+            axes[0][idx].set_xlim(0.55, 0.7)
+            axes[1][idx].set_xlim(0.05, 0.20)
+            size = size_dict[idx]
+            axes[0][idx].set_title("Mean, Selection size = {}, Sample size = {}".format(sample_size, size))
+            axes[1][idx].set_title("Std, Selection size = {}, Sample size = {}".format(sample_size, size))
+        plt.tight_layout()
+        plt.savefig("tmp/clustering_{}_fitness.png".format(cluster_size))
+
+
+    def quantitative_fitness(self,  eval_dir, cluster_dir, script_name):
+        # load baseline
+        eval_dir_path = Path(eval_dir)  / script_name
+        analytic_df = pd.read_pickle(eval_dir_path / "analytic_train_fitness.pkl")
+        analytic_df["method"] = "baseline"
+        analytic_df = analytic_df[analytic_df["Term"] == "C"].reset_index(drop=True)
+        analytic_df["Sample_ID"] = [idx for idx in range(len(analytic_df))]
+        analytic_df = analytic_df[analytic_df["Gold"] > 0.0]
+        # load clustering results
+        cluster_file_name = "{}_C_R".format(script_name)
+        cluster_dir_path = Path(cluster_dir) / "train" / cluster_file_name
+        cluster_df_list = [pd.read_pickle(cluster_dir_path / str(idx) / "cluster.pkl") for idx in range(2, 31)]
+        # test
+        print(analytic_df.groupby("method").std()["Recall_Score"])
+        recall_mean = analytic_df["Recall_Score"].mean()
+        sns.distplot(analytic_df["Recall_Score"], kde=False)
+        plt.savefig("tmp/hist.png")
+        # inspection
+        self.quantitative_random(analytic_df)
+        cluster_df = cluster_df_list[8]
+        self.quantitative_clustering(analytic_df, cluster_df, cluster_size=10)
+
+    @staticmethod
+    def sample(data, n):
+        if n >= len(data):
+            return data
+        else:
+            return data.sample(n)
 
 
     def __call__(self, prompt_name, eval_dir_path):

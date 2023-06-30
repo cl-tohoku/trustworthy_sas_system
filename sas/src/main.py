@@ -118,8 +118,9 @@ class Main:
         config.update(kwargs)
         EvalFinetuning(config).execute(given_term=given_term)
 
-    def fitness(self, eval_dir, script_name, **kwargs):
-        Integration().fitness_tmp(eval_dir, script_name)
+    def fitness(self, eval_dir, cluster_dir, script_name, **kwargs):
+        Integration().quantitative_fitness(eval_dir, cluster_dir, script_name)
+
 
 if __name__ == "__main__":
     fire.Fire(Main)
