@@ -50,7 +50,7 @@ class PreprocessMasking:
                 masked_series.append(series)
 
         masked_df = pd.DataFrame(masked_series)
-        return pd.concat([df, masked_df], axis=1).reset_index(drop=True)
+        return pd.concat([df, masked_df]).reset_index(drop=True)
 
 
     def execute(self, masking_span):
@@ -61,6 +61,9 @@ class PreprocessMasking:
         # masking
         masked_train_df = self.masking(train_df, masking_span)
         masked_valid_df = self.masking(valid_df, masking_span)
+
+        print("train size: {}".format(len(masked_train_df)))
+        print("valid size: {}".format(len(masked_valid_df)))
 
         self.to_pickle(masked_train_df, "train", masking_span)
         self.to_pickle(masked_valid_df, "valid", masking_span)

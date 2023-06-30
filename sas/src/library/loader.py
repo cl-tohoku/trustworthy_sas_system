@@ -104,7 +104,7 @@ class Loader:
     def to_bert_dataloader(dataset, batch_size, attention_hidden_size):
         dataset_bert = DatasetForBert(dataset)
         collate_fn = Collate.collate_bert(attention_hidden_size)
-        return DataLoader(dataset_bert, batch_size=batch_size, shuffle=True, drop_last=False, collate_fn=collate_fn)
+        return DataLoader(dataset_bert, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn)
 
     @staticmethod
     def to_finetuning_dataloader(dataset, batch_size, attention_hidden_size, heuristic):

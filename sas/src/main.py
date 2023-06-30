@@ -9,6 +9,7 @@ from preprocess.masking import PreprocessMasking
 from train.base import TrainBase
 from train.base import TrainStatic
 from train.finetuning import TrainFinetuning
+from train.masking import TrainMasking
 from eval.base import EvalBase
 from eval.lazy import Integration
 from eval.base import EvalStatic
@@ -122,10 +123,15 @@ class Main:
     def fitness(self, eval_dir, cluster_dir, script_name, **kwargs):
         Integration().quantitative_fitness(eval_dir, cluster_dir, script_name)
 
-    def masking_preprocess(self, prep_config_path, term, masking_span, **kwargs):
+    def masking_preprocess(self, prep_config_path, masking_span, **kwargs):
         config = Util.load_preprocess_config(prep_config_path)
         config.update(kwargs)
         PreprocessMasking(config)(masking_span)
+
+    def masking_train(self, train_config_path, masking_span, **kwargs):
+        config = Util.load_train_config(train_config_path)
+        config.update(kwargs)
+        TrainMasking(config, masking_span).execute()
 
 if __name__ == "__main__":
     fire.Fire(Main)

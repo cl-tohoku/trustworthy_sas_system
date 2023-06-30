@@ -68,6 +68,13 @@ class Util:
         return pd.read_pickle(file_path)
 
     @staticmethod
+    def load_masking_dataset(config, data_type, masking_span):
+        prep_type = config.preprocessing_type
+        file_name = "{}.{}.{}.{}.pkl".format(config.script_name, prep_type, data_type, masking_span)
+        file_path = Path(config.dataset_dir) / "masking" / file_name
+        return pd.read_pickle(file_path)
+
+    @staticmethod
     def load_dataset_static(script_name, prep_type, data_type, dataset_dir):
         file_name = "{}.{}.{}.pkl".format(script_name, prep_type, data_type)
         file_path = Path(dataset_dir) / file_name
@@ -137,6 +144,17 @@ class Util:
 
         os.makedirs(config.model_dir, exist_ok=True)
         output_path = Path(config.model_dir) / file_name
+        state_dict = model.state_dict()
+        if config.parallel:
+            state_dict = Util.replace_parallel_state_dict(state_dict)
+        torch.save(state_dict, output_path)
+
+    @staticmethod
+    def save_masking_model(model, config, masking_span):
+        experiment_id = config.wandb_name if config.unique_id is None else config.unique_id
+        file_name = "{}_{}.{}.state".format(config.script_name, experiment_id, masking_span)
+        os.makedirs(Path(config.model_dir) / "masking", exist_ok=True)
+        output_path = Path(config.model_dir) / "masking" / file_name
         state_dict = model.state_dict()
         if config.parallel:
             state_dict = Util.replace_parallel_state_dict(state_dict)
