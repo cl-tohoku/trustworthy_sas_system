@@ -15,6 +15,7 @@ from eval.lazy import Integration
 from eval.base import EvalStatic
 from eval.clustering import Clustering2
 from eval.finetuning import EvalFinetuning
+from eval.masking import EvalMasking, ClusteringMasking
 
 class Main:
     def __init__(self, ):
@@ -132,6 +133,11 @@ class Main:
         config = Util.load_train_config(train_config_path)
         config.update(kwargs)
         TrainMasking(config, masking_span).execute()
+
+    def masking_evaluate(self, eval_config_path, masking_span, **kwargs):
+        config = Util.load_eval_config(eval_config_path)
+        config.update(kwargs)
+        EvalMasking(config, masking_span).execute()
 
 if __name__ == "__main__":
     fire.Fire(Main)

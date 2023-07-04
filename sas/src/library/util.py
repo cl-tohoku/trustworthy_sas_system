@@ -198,6 +198,16 @@ class Util:
         return model
 
     @staticmethod
+    def load_masking_model(config, model_config, masking_span):
+        file_name = "{}_{}.{}.state".format(config.script_name, config.unique_id, masking_span)
+        model = Util.select_model(model_config, config)
+        state_dict = torch.load(Path(config.model_dir) / "masking" / file_name)
+        model.load_state_dict(state_dict)
+        if torch.cuda.is_available():
+            model.cuda()
+        return model
+
+    @staticmethod
     def save_eval_df(dataframe, config, data_type, suffix, csv=True, finetuning=False):
         if finetuning:
             csv_file_name = "{}_{}_{}.finetuning.csv".format(config.unique_id, data_type, suffix)
@@ -225,6 +235,15 @@ class Util:
         dataframe.to_pickle((Path(config.eval_dir) / config.script_name / "finetuning" / pkl_file_name))
 
     @staticmethod
+    def save_masking_df(dataframe, config, data_type, suffix, csv, masking_span):
+        csv_file_name = "{}_{}_{}.{}.csv".format(config.unique_id, data_type, suffix, masking_span)
+        pkl_file_name = "{}_{}_{}.{}.pkl".format(config.unique_id, data_type, suffix, masking_span)
+        os.makedirs(str(Path(config.eval_dir) / config.script_name / "masking"), exist_ok=True)
+        if csv:
+            dataframe.to_csv((Path(config.eval_dir) / config.script_name / "masking" / csv_file_name), index=False)
+        dataframe.to_pickle((Path(config.eval_dir) / config.script_name / "masking" / pkl_file_name))
+
+    @staticmethod
     def load_eval_df(config, data_type, suffix):
         file_name = "{}_{}_{}.pkl".format(config.unique_id, data_type, suffix)
         df = pd.read_pickle((Path(config.eval_dir) / config.script_name / file_name))
@@ -234,6 +253,12 @@ class Util:
     def load_finetuning_df(config, data_type, suffix, term, cluster_size, selection_size):
         file_name = "{}_{}_{}.{}.c{}.s{}.pkl".format(config.unique_id, data_type, suffix, term, cluster_size, selection_size)
         df = pd.read_pickle((Path(config.eval_dir) / config.script_name / "finetuning" / file_name))
+        return df
+
+    @staticmethod
+    def load_masking_df(config, data_type, suffix, masking):
+        file_name = "{}_{}_{}.{}.pkl".format(config.unique_id, data_type, suffix, masking)
+        df = pd.read_pickle((Path(config.eval_dir) / config.script_name / "masking" / file_name))
         return df
 
     @staticmethod

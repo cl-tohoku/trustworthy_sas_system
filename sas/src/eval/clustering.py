@@ -113,34 +113,35 @@ class Clustering2:
             cluster_df_list.append(cluster_df)
         return cluster_df_list
 
-    def make_clustering_results(self):
-        def clustering(df, data_type):
-            term_list, score_list = df["Term"].unique(), df["Pred"].unique()
-            for term in term_list:
-                part_df = df[(df["Pred"] != 0) & (df["Term"] == term)]
-                print("{}, Term: {}".format(self.config.script_name, term))
-                attributions = self.select_attribution(part_df, self.config.point_type)
-                hierarchy, hc_id = self.make_cluster_df(attributions, cluster_size=10)
-                score, score_list = "R", part_df["Pred"].to_list()
-                # dump data
-                setting_dir = "{}_{}_{}".format(self.config.script_name, term, score)
-                output_dir = Path(self.config.cluster_dir) / data_type / setting_dir
-                os.makedirs(output_dir, exist_ok=True)
-                data_df = self.integrate_df(part_df, term)
-                data_df.to_pickle(str(output_dir / "data.xz.pkl"), compression="xz")
-                # plot t-sne
-                self.plot_tsne(attributions, label=hc_id, score_list=score_list, output_path=output_dir)
-                # plot dendrogram & save clustering ID
-                _ = self.save_dendrogram_range(hierarchy, attribution=part_df["Attribution"], sample_id=part_df["Sample_ID"],
-                                               vector=attributions, output_path=output_dir)
-                # select for heuristic
-                # merge_df = self.heuristic_selector(data_df, cluster_df_list[self.selection_size - 1], attributions)
-                # os.makedirs(Path(self.config.finetuning_dir) / data_type / setting_dir, exist_ok=True)
-                # merge_df.to_pickle(Path(self.config.finetuning_dir) / data_type / setting_dir / "heuristic.xz.pkl", compression="xz")
+    def clustering(self, df, data_type):
+        term_list, score_list = df["Term"].unique(), df["Pred"].unique()
+        for term in term_list:
+            part_df = df[(df["Pred"] != 0) & (df["Term"] == term)]
+            print("{}, Term: {}".format(self.config.script_name, term))
+            attributions = self.select_attribution(part_df, self.config.point_type)
+            hierarchy, hc_id = self.make_cluster_df(attributions, cluster_size=10)
+            score, score_list = "R", part_df["Pred"].to_list()
+            # dump data
+            setting_dir = "{}_{}_{}".format(self.config.script_name, term, score)
+            output_dir = Path(self.config.cluster_dir) / data_type / setting_dir
+            os.makedirs(output_dir, exist_ok=True)
+            data_df = self.integrate_df(part_df, term)
+            data_df.to_pickle(str(output_dir / "data.xz.pkl"), compression="xz")
+            # plot t-sne
+            self.plot_tsne(attributions, label=hc_id, score_list=score_list, output_path=output_dir)
+            # plot dendrogram & save clustering ID
+            _ = self.save_dendrogram_range(hierarchy, attribution=part_df["Attribution"],
+                                           sample_id=part_df["Sample_ID"],
+                                           vector=attributions, output_path=output_dir)
+            # select for heuristic
+            # merge_df = self.heuristic_selector(data_df, cluster_df_list[self.selection_size - 1], attributions)
+            # os.makedirs(Path(self.config.finetuning_dir) / data_type / setting_dir, exist_ok=True)
+            # merge_df.to_pickle(Path(self.config.finetuning_dir) / data_type / setting_dir / "heuristic.xz.pkl", compression="xz")
 
+    def make_clustering_results(self):
         print("Train set")
         train_df = self.load_attribution_results(data_type="train")
-        clustering(train_df, data_type="train")
+        self.clustering(train_df, data_type="train")
         print("Test set")
         test_df = self.load_attribution_results(data_type="test")
-        clustering(test_df, data_type="test")
+        self.clustering(test_df, data_type="test")
