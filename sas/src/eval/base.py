@@ -170,8 +170,6 @@ class EvalBase:
                 pred_label = torch.round(output).squeeze(0).long().to("cpu").tolist()
                 pred_value_list = output.squeeze(0).cpu().tolist()
 
-
-            # sentence_vector = self.get_sentence_vector(script)
             for target in range(len(gold_label)):
                 alpha = string.ascii_uppercase[target]
                 if annotation_matrix:

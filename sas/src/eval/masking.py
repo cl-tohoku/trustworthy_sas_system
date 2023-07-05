@@ -27,7 +27,7 @@ class EvalMasking(EvalBase):
         super().__init__(eval_config)
         self.masking_span = masking_span
 
-    def dump_finetuning_results(self, dataframe, data_type, suffix, csv):
+    def dump_results(self, dataframe, data_type, suffix, csv=True):
         Util.save_masking_df(dataframe, self.config, data_type, suffix, csv, self.masking_span)
 
     def execute(self):
@@ -48,8 +48,30 @@ class ClusteringMasking(Clustering2):
         super().__init__(eval_config)
         self.masking_span = masking_span
 
-    def execute(self):
+    def load_attribution_results(self, data_type="train"):
+        suffix = "attributions"
+        df = Util.load_masking_df(self.config, data_type, suffix, self.masking_span)
+        return df
 
+    def clustering(self, df, data_type):
+        term_list, score_list = df["Term"].unique(), df["Pred"].unique()
+        for term in term_list:
+            part_df = df[(df["Pred"] != 0) & (df["Term"] == term)]
+            print("{}, Term: {}".format(self.config.script_name, term))
+            data_points = self.select_attribution(part_df, self.config.point_type)
+            # make hierarchy
+            hierarchy = self.make_hierarchy(data_points)
+            score, score_list = self.masking_span, part_df["Pred"].to_list()
+            # dump data
+            data_df = self.integrate_df(part_df, term)
+            self.dump_data_df(data_df, data_type, term, score)
+            # make clustering
+            attributions, sample_id = part_df["Attribution"], part_df["Sample_ID"]
+            cluster_df_list = self.fcluster(hierarchy, attributions, sample_id, data_points)
+            self.plot_dendrogram(hierarchy, cluster_df_list, data_type, term, score)
+            self.dump_cluster_df(cluster_df_list, data_type, term, score)
+
+    def make_clustering_results(self):
         print("Train set")
         train_df = self.load_attribution_results(data_type="train")
         self.clustering(train_df, data_type="train")

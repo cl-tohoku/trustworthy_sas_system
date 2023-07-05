@@ -139,5 +139,10 @@ class Main:
         config.update(kwargs)
         EvalMasking(config, masking_span).execute()
 
+    def masking_clustering(self, eval_config_path, masking_span, **kwargs):
+        config = Util.load_eval_config(eval_config_path)
+        config.update(kwargs)
+        ClusteringMasking(config, masking_span).make_clustering_results()
+
 if __name__ == "__main__":
     fire.Fire(Main)

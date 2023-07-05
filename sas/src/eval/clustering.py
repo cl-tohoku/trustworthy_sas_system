@@ -127,7 +127,7 @@ class Clustering2:
             k_path = output_dir / str(k)
             os.makedirs(k_path, exist_ok=True)
             df_path = k_path / "cluster.pkl"
-            cluster_df_list[k].to_pickle(str(df_path))
+            cluster_df_list[k - t_range[0]].to_pickle(str(df_path))
 
     def clustering(self, df, data_type):
         term_list, score_list = df["Term"].unique(), df["Pred"].unique()
