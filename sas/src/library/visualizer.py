@@ -128,20 +128,15 @@ class Visualizer:
         plt.close()
 
     @staticmethod
-    def tsne(matrix, cluster_id=None, score_list=None, output_path="cluster.png", figsize=(7, 4)):
+    def tsne(cluster_df, output_path="cluster.png", figsize=(7, 4)):
         fig, ax = plt.subplots(1, 1, figsize=figsize)
 
         tsne = TSNE(n_components=2, random_state=0, perplexity=30, n_iter=1000)
-        embedded = tsne.fit_transform(matrix)
-        if score_list is None:
-            vector_df = pd.DataFrame({"X": embedded[:, 0], "Y": embedded[:, 1], "Cluster": cluster_id})
-            sns.scatterplot(vector_df, x="X", y="Y", hue="Cluster", alpha=1.0, palette='colorblind', ax=ax)
-        else:
-            score_unique = np.unique(score_list)
-            markers = {s: m for s, m in zip(score_unique, marker_list[:len(score_unique)])}
-            vector_df = pd.DataFrame({"X": embedded[:, 0], "Y": embedded[:, 1], "Cluster": cluster_id, "Score": score_list})
-            sns.scatterplot(vector_df, x="X", y="Y", hue="Cluster", alpha=1.0, palette='colorblind',
-                            style="Score", markers=markers, ax=ax)
+        sorted_df = cluster_df.sort_values("Number_ID").reset_index(drop=True)
+        points = np.array(sorted_df["Point"].to_list())
+        embedded = tsne.fit_transform(points)
+        vector_df = pd.DataFrame({"X": embedded[:, 0], "Y": embedded[:, 1], "Cluster": sorted_df["Number"]})
+        sns.scatterplot(vector_df, x="X", y="Y", hue="Cluster", alpha=1.0, palette='colorblind', ax=ax)
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         ax.set_title("t-SNE")
 
@@ -150,28 +145,13 @@ class Visualizer:
         plt.close()
 
     @staticmethod
-    def dendrogram(hierarchy, output_path, figsize=(12, 5), k=50):
+    def dendrogram(hierarchy, k, output_path, figsize=(12, 5),):
         fig, ax = plt.subplots(1, 1, figsize=figsize)
-        if k == 0:
-            leaves = dendrogram(hierarchy, ax=ax, orientation="left")["leaves"]
-            ax.set_title("Dendrogram")
-        else:
-            dend = dendrogram(hierarchy, truncate_mode="lastp", p=k, ax=ax, orientation="left")
-            leaves = dend["leaves"]
-            ax.set_title("Dendrogram")
-
+        dendrogram(hierarchy, truncate_mode='lastp', p=k, orientation='right', ax=ax)
+        ax.set_title("Dendrogram")
         fig.tight_layout()
         fig.savefig(output_path)
         plt.close()
-        cluster_id = fcluster(hierarchy, t=k, criterion="maxclust")
-
-        cluster_id = (cluster_id - k - 1) * (-1)
-        idx_list = [idx for idx in range(len(cluster_id))]
-        cluster_list, idx_list = zip(*(sorted(zip(cluster_id, idx_list))))
-        cluster_list, idx_list = [int(i) for i in cluster_list], [int(i) for i in idx_list]
-
-        df = pd.DataFrame({"Number": cluster_list, "Number_ID": idx_list})
-        return df
 
     @staticmethod
     def sse_elbow(sse_df, output_path):

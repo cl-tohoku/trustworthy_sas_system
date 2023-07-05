@@ -16,7 +16,7 @@ import Levenshtein
 from sklearn.metrics.cluster import adjusted_rand_score
 from scipy.special import kl_div, rel_entr
 from sklearn.metrics import  recall_score
-
+from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 
 sys.path.append("..")
 from library.util import Util
@@ -57,12 +57,11 @@ class Clustering2:
 
         return attributions
 
-    def make_cluster_df(self, attributions, cluster_size):
+    def make_hierarchy(self, attributions):
         # Hierarchical
         clustering_instance = HierarchicalClustering()
         hierarchy = clustering_instance.linkage(attributions)
-        hc_label = clustering_instance.fcluster(t=cluster_size)
-        return hierarchy, hc_label,
+        return hierarchy
 
     def integrate_df(self, df, term):
         heatmap = df["Attribution"].to_list()
@@ -82,61 +81,71 @@ class Clustering2:
         integrated_df["Preprocessing"] = self.config.preprocessing_type
         return integrated_df
 
-
     def load_data_dict(self, file_path):
         with open(file_path, "rb") as f:
             return pickle.load(f)
 
-    def make_output_image_name(self, term, category, image_name, suffix=".png"):
-        return "{}_{}_{}_{}.{}".format(term, category, self.config.point_type, image_name, suffix)
+    def dump_data_df(self, data_df, data_type, term, score):
+        setting_dir = "{}_{}_{}".format(self.config.script_name, term, score)
+        output_dir = Path(self.config.cluster_dir) / data_type / setting_dir
+        os.makedirs(output_dir, exist_ok=True)
+        data_df.to_pickle(str(output_dir / "data.xz.pkl"), compression="xz")
 
-    def plot_tsne(self, attributions, label, score_list=None, output_path=None):
-        figsize = (7, 5)
-        figure_path = output_path / "tsne.png"
-        Visualizer.tsne(cluster_id=label, matrix=attributions, output_path=figure_path,
-                        score_list=score_list, figsize=figsize)
-
-    def save_dendrogram_range(self, hierarchy, attribution, sample_id, vector, output_path,):
+    def fcluster(self, hierarchy, attribution, sample_id, data_points, t_range=(2, 31)):
         cluster_df_list = []
-        for k in tqdm(range(2, 31)):
-            figsize = (2, k)
-            k_path = output_path / str(k)
-            os.makedirs(k_path, exist_ok=True)
-            figure_path = k_path / "dendrogram.png"
-            # Sample ID -> table of correspondences, Number ID -> cluster index
-            cluster_df = Visualizer.dendrogram(hierarchy=hierarchy, output_path=figure_path, figsize=figsize, k=k)
-            attr_df = pd.DataFrame({"Attribution": attribution.tolist(), "Vector": vector.tolist(),
+        for k in tqdm(range(*t_range)):
+            attr_df = pd.DataFrame({"Attribution": attribution.tolist(), "Point": data_points.tolist(),
                                     "Sample_ID": sample_id.to_list()})
-            cluster_df = cluster_df.merge(right=attr_df, left_on="Number_ID", right_index=True).sort_index()
-            df_path = k_path / "cluster.pkl"
-            cluster_df.to_pickle(df_path)
+
+            cluster_id = fcluster(hierarchy, t=k, criterion='maxclust')
+            sort_id = [int(i) for i in dendrogram(hierarchy, no_plot=True)['ivl']]
+            cluster_id = (cluster_id - k - 1) * (-1)
+            idx_list = [idx for idx in range(len(cluster_id))]
+            df = pd.DataFrame({"Number": cluster_id, "Number_ID": idx_list})
+            df = df.iloc[sort_id]
+
+            cluster_df = df.merge(right=attr_df, left_on="Number_ID", right_index=True).sort_index()
             cluster_df_list.append(cluster_df)
         return cluster_df_list
+
+    def plot_dendrogram(self, hierarchy, cluster_df_list, data_type, term, score, t_range=(2, 31)):
+        for k in tqdm(range(*t_range)):
+            cluster_df = cluster_df_list[k - t_range[0]]
+            setting_dir = "{}_{}_{}".format(self.config.script_name, term, score)
+            output_dir = Path(self.config.cluster_dir) / data_type / setting_dir
+            k_path = output_dir / str(k)
+            os.makedirs(k_path, exist_ok=True)
+            dendro_path = k_path / "dendrogram.png"
+            Visualizer.dendrogram(hierarchy, k, output_path=dendro_path, figsize=(2, k))
+            tsne_path = k_path / "tsne.png"
+            Visualizer.tsne(cluster_df, output_path=tsne_path)
+
+    def dump_cluster_df(self, cluster_df_list, data_type, term, score, t_range=(2, 31)):
+        for k in range(*t_range):
+            setting_dir = "{}_{}_{}".format(self.config.script_name, term, score)
+            output_dir = Path(self.config.cluster_dir) / data_type / setting_dir
+            k_path = output_dir / str(k)
+            os.makedirs(k_path, exist_ok=True)
+            df_path = k_path / "cluster.pkl"
+            cluster_df_list[k].to_pickle(str(df_path))
 
     def clustering(self, df, data_type):
         term_list, score_list = df["Term"].unique(), df["Pred"].unique()
         for term in term_list:
             part_df = df[(df["Pred"] != 0) & (df["Term"] == term)]
             print("{}, Term: {}".format(self.config.script_name, term))
-            attributions = self.select_attribution(part_df, self.config.point_type)
-            hierarchy, hc_id = self.make_cluster_df(attributions, cluster_size=10)
+            data_points = self.select_attribution(part_df, self.config.point_type)
+            # make hierarchy
+            hierarchy = self.make_hierarchy(data_points)
             score, score_list = "R", part_df["Pred"].to_list()
             # dump data
-            setting_dir = "{}_{}_{}".format(self.config.script_name, term, score)
-            output_dir = Path(self.config.cluster_dir) / data_type / setting_dir
-            os.makedirs(output_dir, exist_ok=True)
             data_df = self.integrate_df(part_df, term)
-            data_df.to_pickle(str(output_dir / "data.xz.pkl"), compression="xz")
-            # plot t-sne
-            self.plot_tsne(attributions, label=hc_id, score_list=score_list, output_path=output_dir)
-            # plot dendrogram & save clustering ID
-            _ = self.save_dendrogram_range(hierarchy, attribution=part_df["Attribution"],
-                                           sample_id=part_df["Sample_ID"],
-                                           vector=attributions, output_path=output_dir)
-            # select for heuristic
-            # merge_df = self.heuristic_selector(data_df, cluster_df_list[self.selection_size - 1], attributions)
-            # os.makedirs(Path(self.config.finetuning_dir) / data_type / setting_dir, exist_ok=True)
-            # merge_df.to_pickle(Path(self.config.finetuning_dir) / data_type / setting_dir / "heuristic.xz.pkl", compression="xz")
+            self.dump_data_df(data_df, data_type, term, score)
+            # make clustering
+            attributions, sample_id = part_df["Attribution"], part_df["Sample_ID"]
+            cluster_df_list = self.fcluster(hierarchy, attributions, sample_id, data_points)
+            self.plot_dendrogram(hierarchy, cluster_df_list, data_type, term, score)
+            self.dump_cluster_df(cluster_df_list, data_type, term, score)
 
     def make_clustering_results(self):
         print("Train set")

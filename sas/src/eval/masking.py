@@ -47,3 +47,12 @@ class ClusteringMasking(Clustering2):
     def __init__(self, eval_config, masking_span):
         super().__init__(eval_config)
         self.masking_span = masking_span
+
+    def execute(self):
+
+        print("Train set")
+        train_df = self.load_attribution_results(data_type="train")
+        self.clustering(train_df, data_type="train")
+        print("Test set")
+        test_df = self.load_attribution_results(data_type="test")
+        self.clustering(test_df, data_type="test")
