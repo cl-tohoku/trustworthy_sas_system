@@ -2,17 +2,21 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import Heatmap from "./Heatmap";
 import Image from "./Image";
+import SearchBox from './Search';
+import ClusterRange from './ClusterRange';
 
 
 export function Inbox(props){
   const [result, setResult] = useState();
   const [clusterSize, setClusterSize] = useState(10);
   const [mask, setMask] = useState(false);
+  const [mode, setMode] = useState(true);
   const [setting, setSetting] = useState('Y14_1213_100_A_R');
   const [files, setFiles] = useState(['']);
   const [dataType, setDataType] = useState('train');
   const [click, setClick] = useState(false);
   const [clickList, setClickList] = useState([]);
+  const [keyword, setKeyword] = useState("");
 
   const requestOptions = {
     method: 'POST',
@@ -111,7 +115,7 @@ export function Inbox(props){
       .then(data => setResult(data))
   };
 
-  const GetClusterSize = (e) => {
+  const SetClusterSize = (e) => {
     setClusterSize(e.target.value)
   };
 
@@ -119,10 +123,6 @@ export function Inbox(props){
     setMask(!mask)
   };
   
-  const SetSetting = (e) => {
-    setSetting(e)
-  };
-
   const SetType = (e) => {
     if (dataType === "train") {
       setDataType("test")
@@ -157,7 +157,7 @@ export function Inbox(props){
 
   const renderFileList = () => {
     return files.map(f => (
-      <button className="flex items-center flex-shrink-0 h-10 px-2 text-sm font-medium rounded hover:bg-gray-300" onClick={() => SetSetting(f)} key={f}>
+      <button className="flex items-center flex-shrink-0 h-10 px-2 text-sm font-medium rounded hover:bg-gray-300" onClick={() => setSetting(f)} key={f}>
         {f}
       </button>
     ))
@@ -175,11 +175,6 @@ export function Inbox(props){
     console.log(`Right button clicked, list=${clickList}`);
   }
 
-  const handleUpdate = (e) => {
-    const updateUrl = "/update";
-    console.log("TBD");
-    fetch(updateUrl, pushOptions)
-  }
 
   return (
     <div className="flex w-screen h-screen text-gray-700">
@@ -212,14 +207,10 @@ export function Inbox(props){
           </div>
           <div className="flex flex-row flex-none w-1/2 justify-end">
             <div className="flex-none items-center justify-center h-10 w-48 px-4 ml-2 text-sm font-medium bg-white">
-              <label
-                for="customRange3"
-                class="inline-block text-neutral-700 dark:text-neutral-200"
-              >Size={clusterSize}
-              </label>
-              <input type="range" className="h-4 w-32 px-2 ml-auto text-sm font-medium rounded hover:bg-gray-300"
-                min="2" max="30" onChange={GetClusterSize} id="customRange3" />
+              <ClusterRange SetClusterSize={SetClusterSize} clusterSize={clusterSize}/>
             </div>
+            <SearchBox className="flex-none h-10 w-48 px-4 ml-2 text-sm font-medium bg-gray-200 rounded hover:bg-gray-300"
+             setting={setting} dataType={dataType} setKeyword={setKeyword} setMode={setMode}/>
             <button className="flex-none h-10 w-32 px-4 ml-2 text-sm font-medium bg-gray-200 rounded hover:bg-gray-300"
               onClick={SetType}>
               {dataType}
@@ -228,14 +219,10 @@ export function Inbox(props){
               onClick={SetMask}>
               Justification Cue
             </button>
-            <button className="flex-none h-10 w-48 px-4 ml-2 text-sm font-medium bg-gray-200 rounded hover:bg-gray-300"
-              onClick={handleUpdate}>
-              Update to dataset
-            </button>
           </div>
         </div>
         <div className="flex flex-row h-full">
-          <div className="flex flex-col w-56 border-r border-gray-300">
+          <div className="flex flex-col w-64 border-r border-gray-300">
             <div className="flex flex-col flex-grow p-4 overflow-auto">
               {renderFileList()}
             </div>

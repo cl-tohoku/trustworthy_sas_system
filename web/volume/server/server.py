@@ -27,11 +27,18 @@ class Item(BaseModel):
     mask: bool
     data_type: str
 
+
 class UpdateItem(BaseModel):
     size: Union[str, int]
     setting: str
     problematic_list: list
     data_type: str
+
+
+class SearchItem(BaseModel):
+    setting: str
+    data_type: str
+    keyword: str
 
 
 @app.get("/")
@@ -54,7 +61,7 @@ def distance(item: Item):
 
     # make response
     responses = {"cluster": result_df["Number"].to_list(), "token": result_df["Token"].to_list(),
-                 "color": color, "max": cluster_size, "just": just}
+                 "color": color, "max": cluster_size, "just": just, "cluster_mode": True}
     return responses
 
 
@@ -89,3 +96,16 @@ def update_dataset(item: UpdateItem):
     # update & write
     update_df = beta.update_df(result_df, item.problematic_list)
     beta.write_df(update_df, data_type=item.data_type, setting=item.setting)
+
+@app.post("/search")
+def search(item: SearchItem):
+    beta.load_sentence_data(setting=item.setting, data_type=item.data_type)
+    df = beta.search_data(item.keyword)
+
+    color = result_df["Color"].to_list()
+    just = result_df["Mask_Color"].to_list()
+
+    # make response
+    responses = {"token": result_df["Token"].to_list(), "color": color, "just": just, "cluster_mode": False}
+    return responses
+    

@@ -41,3 +41,8 @@ class ClusteringBeta:
         os.makedirs(dir_path, exist_ok=True)
         file_path = dir_path / "updated.xz.pkl"
         df.to_pickle(file_path, compression="xz")
+
+    def search_data(self, keyword):
+        sentence_series = self.data_df["Token"].apply(lambda x: "".join(x))
+        is_included = series.apply(lambda x: keyword in x)
+        return self.df[is_included]
