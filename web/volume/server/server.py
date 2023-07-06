@@ -24,7 +24,6 @@ beta = ClusteringBeta()
 class Item(BaseModel):
     size: Union[str, int]
     setting: str
-    mask: bool
     data_type: str
 
 

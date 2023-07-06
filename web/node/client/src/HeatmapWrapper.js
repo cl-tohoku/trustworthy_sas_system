@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Heatmap from './Heatmap'
 
 const HeatmapWrapper = (props) => {
-  const renderHeatmapList = () => {
+  const renderClusterHeatmap = () => {
     const list = [];
     for (let idx = 0; idx < props.result.max; idx++) {
       list.push(
@@ -14,9 +14,9 @@ const HeatmapWrapper = (props) => {
     return list;
   };
 
-  const url = "/distance";
-  const GetResults = (e) => {
-    fetch(url, requestOptions)
+  const clusterUrl = "/distance";
+  const GetClusterResults = (e) => {
+    fetch(clusterUrl, requestOptions)
       .then(response => response.json())
       .then(data => props.setResult(data))
   };
@@ -31,14 +31,34 @@ const HeatmapWrapper = (props) => {
     body: JSON.stringify({
       'size': props.clusterSize,
       'setting': props.setting,
-      'mask': props.mask,
+      'data_type': props.dataType,
+    }),
+  };
+  
+  const searchUrl = "/distance";
+  const GetSearchResults = (e) => {
+    fetch(searchUrl, searchOptions)
+      .then(response => response.json())
+      .then(data => props.setResult(data))
+  };
+
+  const searchOptions = {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json, */*',
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+    },
+    body: JSON.stringify({
+      'keyword': props.keyword,
+      'setting': props.setting,
       'data_type': props.dataType,
     }),
   };
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      GetResults();
+      GetClusterResults();
     }, 200);
 
     return () => {
@@ -49,7 +69,7 @@ const HeatmapWrapper = (props) => {
   return (
     <div>
       <div className="grid grid-cols-1 gap-2">
-        {props.result && renderHeatmapList()}
+        {props.result && renderClusterHeatmap()}
       </div>
     </div>
   );
