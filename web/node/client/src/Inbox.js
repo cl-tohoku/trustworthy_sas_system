@@ -4,6 +4,7 @@ import Heatmap from "./Heatmap";
 import Image from "./Image";
 import SearchBox from './Search';
 import ClusterRange from './ClusterRange';
+import FileList from './FileList';
 
 
 export function Inbox(props){
@@ -12,10 +13,7 @@ export function Inbox(props){
   const [mask, setMask] = useState(false);
   const [mode, setMode] = useState(true);
   const [setting, setSetting] = useState('Y14_1213_100_A_R');
-  const [files, setFiles] = useState(['']);
   const [dataType, setDataType] = useState('train');
-  const [click, setClick] = useState(false);
-  const [clickList, setClickList] = useState([]);
   const [keyword, setKeyword] = useState("");
 
   const requestOptions = {
@@ -33,39 +31,8 @@ export function Inbox(props){
     }),
   };
 
-  const requestFileOptions = {
-    method: 'GET',
-    headers: {
-      'Accept': 'application/json, */*',
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    },
-  };
-
-  const pushOptions = {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json, */*',
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    },
-    body: JSON.stringify({
-      'size': clusterSize,
-      'setting': setting,
-      'data_type': dataType,
-      'problematic_list': clickList,
-    }),
-  };
-
-  useEffect(() => {
-    fetch("/file", requestFileOptions)
-      .then(response => response.json())
-      .then(data => setFiles(data.file))
-  }, []);
-
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      // ここに遅延実行する処理を書く
       console.log(`Value changed to ${clusterSize}`);
       GetClusteringResults();
     }, 200);
@@ -134,45 +101,17 @@ export function Inbox(props){
   const renderHeatmapList = () => {
     const list = [];
     for (let idx = 0; idx < result.max; idx++) {
-      if (clickList.includes(idx)) {
-        list.push(
-          <div className="border-2 border-rose-500" onContextMenu={(e) => handleDisabled(idx, e)}>
-            <Heatmap result={result} number={idx + 1} size={clusterSize} mask={mask}/>
-          </div>
-        );
-      } else {
-        list.push(
-          <div className="border-2 border-gray-200" onContextMenu={(e) => handleEnabled(idx, e)}>
-            <Heatmap result={result} number={idx + 1} size={clusterSize} mask={mask}/>
-          </div>
-        );
-      };
+      list.push(
+        <div className="border-2 border-gray-200">
+          <Heatmap result={result} number={idx + 1} size={clusterSize} mask={mask}/>
+        </div>
+      );
     }
     return list;
   };
 
   const renderImage = () => {
     return <Image endpoint="dendrogram" dataType={dataType} setting={setting} size={clusterSize} />;
-  }
-
-  const renderFileList = () => {
-    return files.map(f => (
-      <button className="flex items-center flex-shrink-0 h-10 px-2 text-sm font-medium rounded hover:bg-gray-300" onClick={() => setSetting(f)} key={f}>
-        {f}
-      </button>
-    ))
-  }
-
-  const handleEnabled = (idx, e) => {
-    e.preventDefault();
-    setClickList([...clickList, idx])
-    console.log(`Right button clicked, list=${clickList}`);
-  }
-
-  const handleDisabled = (idx, e) => {
-    e.preventDefault();
-    setClickList(clickList.filter(item => item !== idx))
-    console.log(`Right button clicked, list=${clickList}`);
   }
 
 
@@ -206,11 +145,12 @@ export function Inbox(props){
             <h1 className="text-lg font-medium">{setting}</h1>
           </div>
           <div className="flex flex-row flex-none w-1/2 justify-end">
+            <div className="flex-none h-10 w-64 px-4 ml-2 items-center justify-center">
+              <SearchBox setting={setting} dataType={dataType} setKeyword={setKeyword} setMode={setMode} />
+            </div>
             <div className="flex-none items-center justify-center h-10 w-48 px-4 ml-2 text-sm font-medium bg-white">
               <ClusterRange SetClusterSize={SetClusterSize} clusterSize={clusterSize}/>
             </div>
-            <SearchBox className="flex-none h-10 w-48 px-4 ml-2 text-sm font-medium bg-gray-200 rounded hover:bg-gray-300"
-             setting={setting} dataType={dataType} setKeyword={setKeyword} setMode={setMode}/>
             <button className="flex-none h-10 w-32 px-4 ml-2 text-sm font-medium bg-gray-200 rounded hover:bg-gray-300"
               onClick={SetType}>
               {dataType}
@@ -224,16 +164,11 @@ export function Inbox(props){
         <div className="flex flex-row h-full">
           <div className="flex flex-col w-64 border-r border-gray-300">
             <div className="flex flex-col flex-grow p-4 overflow-auto">
-              {renderFileList()}
+              <FileList setSetting={setSetting}/>
             </div>
           </div>
           <div className="flex flex-row w-screen overflow-auto">
             <div className="flex flex-row h-auto bg-gray-0">
-              {/*
-              <div className="flex-1">
-                {result && <Image endpoint="tsne" setting={setting}/>}
-              </div>
-              */}
               <div className="flex-1 w-52 justify-center items-center">
                 {result && renderImage()}
               </div>

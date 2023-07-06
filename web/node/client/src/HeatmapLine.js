@@ -14,9 +14,6 @@ export function HeatmapLine(props) {
     }
   }
 
-  // {data ? <div>{data.cluster}</div> : <button onClick={GetData}>データを取得</button>}
-  // {data ? <div>Hello?, {data.cluster} </div> : <div> none </div>}
-  // {data && <div>{data.cluster}</div>}
   const convert = (just) => {
     return just.map((j) => {
       return j === "#f0e68c" ? "#4169e1" : j
