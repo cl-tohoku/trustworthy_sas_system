@@ -5,7 +5,7 @@ import Image from "./Image";
 import SearchBox from './Search';
 import ClusterRange from './ClusterRange';
 import FileList from './FileList';
-
+import HeatmapWrapper from './HeatmapWrapper';
 
 export function Inbox(props){
   const [result, setResult] = useState();
@@ -16,71 +16,6 @@ export function Inbox(props){
   const [dataType, setDataType] = useState('train');
   const [keyword, setKeyword] = useState("");
 
-  const requestOptions = {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json, */*',
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    },
-    body: JSON.stringify({
-      'size': clusterSize,
-      'setting': setting,
-      'mask': mask,
-      'data_type': dataType,
-    }),
-  };
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      console.log(`Value changed to ${clusterSize}`);
-      GetClusteringResults();
-    }, 200);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [clusterSize]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      console.log(`Value changed to ${mask}`);
-      GetClusteringResults();
-    }, 200);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [mask]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      console.log(`Value changed to ${setting}`);
-      GetClusteringResults();
-    }, 200);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [setting]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      console.log(`Value changed to ${dataType}`);
-      GetClusteringResults();
-    }, 200);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [dataType]);
-
-  const url = "/distance";
-  const GetClusteringResults = (e) => {
-    fetch(url, requestOptions)
-      .then(response => response.json())
-      .then(data => setResult(data))
-  };
 
   const SetClusterSize = (e) => {
     setClusterSize(e.target.value)
@@ -98,17 +33,6 @@ export function Inbox(props){
     }
   };
 
-  const renderHeatmapList = () => {
-    const list = [];
-    for (let idx = 0; idx < result.max; idx++) {
-      list.push(
-        <div className="border-2 border-gray-200">
-          <Heatmap result={result} number={idx + 1} size={clusterSize} mask={mask}/>
-        </div>
-      );
-    }
-    return list;
-  };
 
   const renderImage = () => {
     return <Image endpoint="dendrogram" dataType={dataType} setting={setting} size={clusterSize} />;
@@ -118,27 +42,6 @@ export function Inbox(props){
   return (
     <div className="flex w-screen h-screen text-gray-700">
       {/* Component Start */}
-      <div className="flex flex-col items-center w-16 pb-4 overflow-auto border-r border-gray-300">
-        <a
-          className="flex items-center justify-center flex-shrink-0 w-full h-16 bg-gray-300"
-          href="#"
-        >
-          <svg
-            className="w-8 h-8"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-            />
-          </svg>
-        </a>
-      </div>
       <div className="flex flex-col w-full">
         <div className="flex flex-row items-center flex-shrink-0 h-16 px-8 border-b border-gray-300">
           <div className="flex-none w-1/2">
@@ -175,9 +78,8 @@ export function Inbox(props){
             </div>
             <div className="flex flex-col flex-1 bg-gray-0">
               <div className="flex-1 p-4 bg-gray-200 pt-6">
-                <div className="grid grid-cols-1 gap-2">
-                  {result && renderHeatmapList()}
-                </div>
+                <HeatmapWrapper result={result} setResult={setResult} setting={setting} mask={mask}
+                  dataType={dataType} clusterSize={clusterSize} keyword={keyword}/>
               </div>
             </div>
           </div>
