@@ -35,7 +35,7 @@ const HeatmapWrapper = (props) => {
     }),
   };
   
-  const searchUrl = "/distance";
+  const searchUrl = "/search";
   const GetSearchResults = (e) => {
     fetch(searchUrl, searchOptions)
       .then(response => response.json())
@@ -64,7 +64,17 @@ const HeatmapWrapper = (props) => {
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [props.clusterSize, props.mask, props.setting, props.dataType, props.keyword]);
+  }, [, props.clusterSize, props.mask, props.setting, props.dataType]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      GetSearchResults();
+    }, 200);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [props.keyword]);
 
   return (
     <div>

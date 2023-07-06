@@ -44,5 +44,5 @@ class ClusteringBeta:
 
     def search_data(self, keyword):
         sentence_series = self.data_df["Token"].apply(lambda x: "".join(x))
-        is_included = series.apply(lambda x: keyword in x)
-        return self.df[is_included]
+        is_included = sentence_series.apply(lambda x: keyword in x)
+        return self.data_df[is_included]

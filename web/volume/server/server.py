@@ -60,7 +60,7 @@ def distance(item: Item):
 
     # make response
     responses = {"cluster": result_df["Number"].to_list(), "token": result_df["Token"].to_list(),
-                 "color": color, "max": cluster_size, "just": just, "cluster_mode": True}
+                 "color": color, "max": cluster_size, "just": just}
     return responses
 
 
@@ -99,12 +99,12 @@ def update_dataset(item: UpdateItem):
 @app.post("/search")
 def search(item: SearchItem):
     beta.load_sentence_data(setting=item.setting, data_type=item.data_type)
-    df = beta.search_data(item.keyword)
-
+    result_df = beta.search_data(item.keyword)
     color = result_df["Color"].to_list()
     just = result_df["Mask_Color"].to_list()
 
     # make response
-    responses = {"token": result_df["Token"].to_list(), "color": color, "just": just, "cluster_mode": False}
+    responses = {"cluster": [1 for _ in range(len(color))], "token": result_df["Token"].to_list(), 
+                 "color": color, "max": 1, "just": just}
     return responses
     
