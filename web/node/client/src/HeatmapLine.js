@@ -2,10 +2,16 @@ import React from 'react';
 
 export function HeatmapLine(props) {
   const Render = (token, color, just) => {
-    return token.map((t, jdx) => {
-      return <span className="text-sm" style={{backgroundColor: color[jdx], textDecorationColor: just[jdx],
-         textDecorationLine: "underline", textDecorationThickness: "4px"}}>{t}</span>
-    });
+    if (props.mask) {
+      return token.map((t, jdx) => {
+        return <span className="text-sm" style={{backgroundColor: color[jdx], textDecorationColor: just[jdx],
+           textDecorationLine: "underline", textDecorationThickness: "4px"}}>{t}</span>
+      });
+    } else {
+      return token.map((t, jdx) => {
+        return <span className="text-sm" style={{backgroundColor: color[jdx]}}>{t}</span>
+      });
+    }
   }
 
   // {data ? <div>{data.cluster}</div> : <button onClick={GetData}>データを取得</button>}

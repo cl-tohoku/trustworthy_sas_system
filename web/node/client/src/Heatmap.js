@@ -17,7 +17,7 @@ export function Heatmap(props) {
         } else {
           return (
             <div onClick={changeValue}>
-              <p><HeatmapLine token={props.result.token[idx]} color={props.result.color[idx]} just={props.result.just[idx]} /></p>
+              <p><HeatmapLine token={props.result.token[idx]} color={props.result.color[idx]} just={props.result.just[idx]} mask={props.mask} /></p>
             </div>
           );
         }

@@ -25,23 +25,11 @@ class ClusteringBeta:
     
     def load_cluster_data(self, setting=init_setting, size=init_size, data_type=init_type):
         self.cluster_df = pd.read_pickle("data/{}/{}/{}/cluster.pkl".format(data_type, setting, size))
-
-    def fcluster(self, size):
-        # clustering
-        cluster = self.cluster_list[size - 2]
-
-        # sort by cluster number
-        idx_list = [idx for idx in range(len(cluster))]
-        cluster_list, idx_list = zip(*(sorted(zip(cluster, idx_list))))
-        cluster_list, idx_list = list(cluster_list), list(idx_list)
-
-        print(cluster_list)
-        # to df
-        return pd.DataFrame({"Number": cluster_list, "Idx": idx_list})
+        self.cluster_df = self.cluster_df.rename(columns={'Idx': 'Number_ID'})
 
     def do_query(self, distance):
         # clustering
-        return pd.merge(self.cluster_df, self.data_df, on="Idx")
+        return pd.merge(self.cluster_df, self.data_df, left_on="Number_ID", right_on="Idx")
 
     def update_df(self, df, problematic_list):
         for problematic_cluster in problematic_list:

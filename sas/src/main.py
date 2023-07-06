@@ -144,5 +144,6 @@ class Main:
         config.update(kwargs)
         ClusteringMasking(config, masking_span).make_clustering_results()
 
+
 if __name__ == "__main__":
     fire.Fire(Main)

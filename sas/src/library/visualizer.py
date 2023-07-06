@@ -147,7 +147,7 @@ class Visualizer:
     @staticmethod
     def dendrogram(hierarchy, k, output_path, figsize=(12, 5),):
         fig, ax = plt.subplots(1, 1, figsize=figsize)
-        dendrogram(hierarchy, truncate_mode='lastp', p=k, orientation='right', ax=ax)
+        dendrogram(hierarchy, truncate_mode='lastp', p=k, orientation='left', ax=ax)
         ax.set_title("Dendrogram")
         fig.tight_layout()
         fig.savefig(output_path)

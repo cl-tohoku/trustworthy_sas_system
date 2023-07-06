@@ -137,13 +137,13 @@ export function Inbox(props){
       if (clickList.includes(idx)) {
         list.push(
           <div className="border-2 border-rose-500" onContextMenu={(e) => handleDisabled(idx, e)}>
-            <Heatmap result={result} number={idx + 1} size={clusterSize} />
+            <Heatmap result={result} number={idx + 1} size={clusterSize} mask={mask}/>
           </div>
         );
       } else {
         list.push(
           <div className="border-2 border-gray-200" onContextMenu={(e) => handleEnabled(idx, e)}>
-            <Heatmap result={result} number={idx + 1} size={clusterSize} />
+            <Heatmap result={result} number={idx + 1} size={clusterSize} mask={mask}/>
           </div>
         );
       };

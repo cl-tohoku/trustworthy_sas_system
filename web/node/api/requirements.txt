@@ -1,0 +1,8 @@
+fire
+seaborn
+fastapi
+uvicorn
+tqdm
+numpy
+scipy
+pandas
