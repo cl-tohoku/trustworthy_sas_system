@@ -124,10 +124,10 @@ class Main:
     def fitness(self, eval_dir, cluster_dir, script_name, **kwargs):
         Integration().quantitative_fitness(eval_dir, cluster_dir, script_name)
 
-    def masking_preprocess(self, prep_config_path, masking_span, **kwargs):
+    def masking_preprocess(self, prep_config_path, masking_span, previous_script_name, **kwargs):
         config = Util.load_preprocess_config(prep_config_path)
         config.update(kwargs)
-        PreprocessMasking(config)(masking_span)
+        PreprocessMasking(config)(masking_span, previous_script_name)
 
     def masking_train(self, train_config_path, masking_span, **kwargs):
         config = Util.load_train_config(train_config_path)
@@ -143,6 +143,36 @@ class Main:
         config = Util.load_eval_config(eval_config_path)
         config.update(kwargs)
         ClusteringMasking(config, masking_span).make_clustering_results()
+
+    def masking_execute(self, prompt_name="Y14_1213", masking_span="", previous_script_name="",
+                        limitation=0, config_file_name="template.yml",
+                        preprocessing=True, training=True, evaluation=True, clustering=True):
+        script_name = "{}_{}".format(prompt_name, masking_span)
+        print(script_name)
+
+        if preprocessing:
+            print("Preprocess...")
+            preprocess_config_path = "config/ys/preprocess/{}.yml".format(prompt_name)
+            self.masking_preprocess(prep_config_path=preprocess_config_path, masking_span=masking_span,
+                                    previous_script_name=previous_script_name,
+                                    script_name=script_name, train_size_limitation=limitation, download_ft=False)
+
+        if training:
+            print("Training...")
+            train_config_path = "config/ys/train/{}".format(config_file_name)
+            self.masking_train(train_config_path=train_config_path, masking_span=masking_span,
+                               script_name=script_name, wandb_group=script_name)
+
+        if evaluation:
+            # evaluate
+            print("Evaluating...")
+            eval_config_path = "config/ys/eval/{}".format(config_file_name)
+            self.masking_evaluate(eval_config_path=eval_config_path, masking_span=masking_span, script_name=script_name)
+
+        if clustering:
+            print("Clustering...")
+            eval_config_path = "config/ys/eval/{}".format(config_file_name)
+            self.clustering(eval_config_path=eval_config_path, masking_span=masking_span, script_name=script_name)
 
 
 if __name__ == "__main__":

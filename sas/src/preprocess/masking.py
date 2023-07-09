@@ -52,11 +52,10 @@ class PreprocessMasking:
         masked_df = pd.DataFrame(masked_series)
         return pd.concat([df, masked_df]).reset_index(drop=True)
 
-
-    def execute(self, masking_span):
-        train_df = Util.load_dataset_static(self.config.script_name, "bert", "train", self.config.dataset_dir)
-        valid_df = Util.load_dataset_static(self.config.script_name, "bert", "valid", self.config.dataset_dir)
-        test_df = Util.load_dataset_static(self.config.script_name, "bert", "test", self.config.dataset_dir)
+    def execute(self, masking_span, previous_script_name):
+        train_df = Util.load_dataset_static(previous_script_name, "bert", "train", self.config.dataset_dir)
+        valid_df = Util.load_dataset_static(previous_script_name, "bert", "valid", self.config.dataset_dir)
+        test_df = Util.load_dataset_static(previous_script_name, "bert", "test", self.config.dataset_dir)
 
         # masking
         masked_train_df = self.masking(train_df, masking_span)
@@ -69,8 +68,8 @@ class PreprocessMasking:
         self.to_pickle(masked_valid_df, "valid", masking_span)
         self.to_pickle(test_df, "test", masking_span)
 
-    def __call__(self, masking_span):
+    def __call__(self, masking_span, previous_script_name):
         # load dataset & parse
         prompt = Util.load_prompt_config(self.config.prompt_path)
         self.base.dump_prompt(prompt)
-        self.execute(masking_span)
+        self.execute(masking_span, previous_script_name)
