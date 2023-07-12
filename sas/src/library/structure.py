@@ -53,16 +53,17 @@ class YAML:
 
 @dataclass
 class PreprocessConfig(YAML):
-    script_name: str = "Y14_1-2_1_3"
+    preprocess_name: str = "Y14_1213"
     script_path: str = "data/data_ys/Y14/Y14_1-2_1_3.json"
     prompt_path: str = "config/prompt/test_prompt.yml"
+    contamination_path: str = ""
     dataset_dir: str = "data/pickle/Y14"
     dataset_type: str = "ys"
     download_ft: bool = False
     max_length: int = 512
     test_size: float = 0.2
     valid_size: float = 0.2
-    train_size_limitation: int = 0
+    limitation: int = 0
     finetuning_dir: str = ""
 
 
@@ -77,6 +78,7 @@ class PromptConfig(YAML):
 @dataclass
 class TrainConfig(YAML):
     # I/O
+    preprocess_name: str = "Y14_1213"
     script_name: str = "Y14_1-2_1_3"
     dataset_dir: str = "data/pickle/Y14"
     model_dir: str = "data/model"
@@ -110,6 +112,8 @@ class TrainConfig(YAML):
     # loss lamnda
     attention_lambda: float = 1.0
     gradient_lambda: float = 1.0
+    limitation: int = 0
+    mode: str = "standard"
 
 
 @dataclass
@@ -123,6 +127,7 @@ class ModelConfig(YAML):
 
 @dataclass
 class EvalConfig(YAML):
+    preprocess_name: str = "Y14_1213"
     script_name: str = "Y14_1-2_1_3"
     dataset_dir: str = "data/pickle/Y14"
     model_dir: str = "data/model"
@@ -152,6 +157,8 @@ class EvalConfig(YAML):
     heuristics: str = ""
     term: str = ""
     loss: str = ""
+    limitation: int = 0
+    mode: str = "standard"
 
 
 @dataclass

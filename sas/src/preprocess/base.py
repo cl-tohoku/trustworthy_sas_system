@@ -28,13 +28,20 @@ class PreprocessBase:
     def to_pickle(self, class_dataset, prep_type, data_type, validation=None):
         # cross-validation
         if validation is None:
-            file_name = "{}.{}.{}.pkl".format(self.config.script_name, prep_type, data_type)
+            file_name = "{}.{}.{}.{}.standard.pkl".format(self.config.preprocess_name,
+                                                          self.config.limitation, prep_type, data_type)
         else:
             file_name = "{}.{}.{}.v{}.pkl".format(self.config.script_name, prep_type, data_type, validation)
 
         # dump
         os.makedirs(self.config.dataset_dir, exist_ok=True)
         class_dataset.reset_index(drop=True).to_pickle(Path(self.config.dataset_dir) / file_name)
+
+    def dump_prompt(self, prompt):
+        os.makedirs(self.config.dataset_dir, exist_ok=True)
+        file_name = "{}.{}.standard.prompt.yml".format(self.config.preprocess_name, self.config.limitation)
+        file_path = Path(self.config.dataset_dir) / file_name
+        prompt.save(file_path)
 
     def select_preprocessor(self):
         if self.config.dataset_type.lower() == "ys":
@@ -58,9 +65,9 @@ class PreprocessBase:
         train_dataset, valid_dataset = train_test_split(train_dataset, test_size=self.config.valid_size,
                                                         shuffle=True, random_state=seed)
 
-        if self.config.train_size_limitation != 0:
-            train_dataset = train_dataset[:self.config.train_size_limitation]
-            valid_dataset = train_dataset[:int(self.config.train_size_limitation * self.config.valid_size)]
+        if self.config.limitation != 0:
+            train_dataset = train_dataset[:self.config.limitation]
+            valid_dataset = train_dataset[:int(self.config.limitation * self.config.valid_size)]
 
         # dump
         self.to_pickle(train_dataset, prep_type, "train")
@@ -79,12 +86,6 @@ class PreprocessBase:
             self.to_pickle(train_dataset, prep_type, "train", validation=idx)
             self.to_pickle(valid_dataset, prep_type, "valid", validation=idx)
             self.to_pickle(test_dataset, prep_type, "test", validation=idx)
-
-    def dump_prompt(self, prompt):
-        os.makedirs(self.config.dataset_dir, exist_ok=True)
-        file_name = "{}.prompt.yml".format(self.config.script_name)
-        file_path = Path(self.config.dataset_dir) / file_name
-        prompt.save(file_path)
 
     def __call__(self):
         # load dataset & parse

@@ -6,6 +6,7 @@ from library.util import Util
 from preprocess.base import PreprocessBase
 from preprocess.finetuning import PreprocessFinetuning
 from preprocess.masking import PreprocessMasking
+from preprocess.contamination import PreprocessContamination
 from train.base import TrainBase
 from train.base import TrainStatic
 from train.finetuning import TrainFinetuning
@@ -17,6 +18,7 @@ from eval.clustering import Clustering2
 from eval.finetuning import EvalFinetuning
 from eval.masking import EvalMasking, ClusteringMasking
 
+
 class Main:
     def __init__(self, ):
         pass
@@ -25,6 +27,7 @@ class Main:
         config = Util.load_preprocess_config(config_path)
         config.update(kwargs)
         PreprocessBase(config)()
+        PreprocessContamination(config)()
 
     def train(self, train_config_path, **kwargs):
         # load configuration files
@@ -77,32 +80,35 @@ class Main:
             except Exception as e:
                 print("Error:", e)
 
+    def execute(self, prompt_name="Y14_1213", script_name="Y14_1213_XX", limitation=0, config_file_name="template.yml",
+                preprocessing=True, training=True, evaluation=True, clustering=True, mode="standard"):
 
-    def execute(self, prompt_name="Y14_1213", limitation=0, config_file_name="template.yml",
-                preprocessing=True, training=True, evaluation=True, clustering=True,):
-        script_name = prompt_name if limitation == 0 else "{}_{}".format(prompt_name, limitation)
         print(script_name)
-
         if preprocessing:
             print("Preprocess...")
             preprocess_config_path = "config/ys/preprocess/{}.yml".format(prompt_name)
-            self.preprocess(config_path=preprocess_config_path, script_name=script_name, train_size_limitation=limitation, download_ft=False)
+            self.preprocess(config_path=preprocess_config_path, preprocess_name=prompt_name,
+                            limitation=limitation, download_ft=False)
 
+        # データセットを読むのに preprocess_name, limitation, mode が必要
+        # script_name は実験内容を表すユニークな名称
         if training:
             print("Training...")
             train_config_path = "config/ys/train/{}".format(config_file_name)
-            self.train(train_config_path=train_config_path, script_name=script_name, wandb_group=script_name)
+            self.train(train_config_path=train_config_path, preprocess_name=prompt_name, mode=mode,
+                       script_name=script_name, limitation=limitation, wandb_group=script_name)
 
         if evaluation:
-            # evaluate
             print("Evaluating...")
             eval_config_path = "config/ys/eval/{}".format(config_file_name)
-            self.evaluate(eval_config_path=eval_config_path, script_name=script_name)
+            self.evaluate(eval_config_path=eval_config_path, preprocess_name=prompt_name, mode=mode,
+                          script_name=script_name, limitation=limitation)
 
         if clustering:
             print("Clustering...")
             eval_config_path = "config/ys/eval/{}".format(config_file_name)
-            self.clustering(eval_config_path=eval_config_path, script_name=script_name)
+            self.clustering(eval_config_path=eval_config_path, preprocess_name=prompt_name, mode=mode,
+                            script_name=script_name, limitation=limitation)
 
     def finetuning_preprocess(self, prep_config_path, eval_config_path, **kwargs):
         config = Util.load_preprocess_config(prep_config_path)

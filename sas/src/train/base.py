@@ -103,8 +103,8 @@ class TrainBase:
         wandb.log({"{}_loss".format(phase): loss}, commit=commit)
 
     def load_dataset(self):
-        train_dataset = Util.load_dataset(self.config, "train", finetuning=self.finetuning)
-        valid_dataset = Util.load_dataset(self.config, "valid", finetuning=self.finetuning)
+        train_dataset = Util.load_dataset(self.config, "train")
+        valid_dataset = Util.load_dataset(self.config, "valid")
         return train_dataset, valid_dataset
 
     def to_dataloader(self, dataset):

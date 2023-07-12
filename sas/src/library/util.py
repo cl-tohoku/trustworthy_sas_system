@@ -43,6 +43,11 @@ class Util:
         return PromptConfig.load(Path(config_path))
 
     @staticmethod
+    def load_contamination_config(config_path):
+        with open(config_path, "r") as f:
+            return yaml.load(f)
+
+    @staticmethod
     def load_sweep_config(sweep_path):
         """
         :param sweep_path: str, e.g. "config/sweep.yml"
@@ -52,17 +57,9 @@ class Util:
             return yaml.load(f)
 
     @staticmethod
-    def load_dataset(config, data_type, finetuning=False):
-        """
-        :param config: Config
-        :param data_type: str, "train" or "valid" or "test"
-        :return: list(ScriptBert) or list(ScriptGlove)
-        """
+    def load_dataset(config, data_type):
         prep_type = config.preprocessing_type
-        if config.validation:
-            file_name = "{}.{}.{}.v{}.pkl".format(config.script_name, prep_type, data_type, config.validation_idx)
-        else:
-            file_name = "{}.{}.{}.pkl".format(config.script_name, prep_type, data_type)
+        file_name = "{}.{}.{}.{}.{}.pkl".format(config.preprocess_name, config.limitation, prep_type, data_type, config.mode)
         file_path = Path(config.dataset_dir) / file_name
 
         return pd.read_pickle(file_path)
@@ -75,17 +72,9 @@ class Util:
         return pd.read_pickle(file_path)
 
     @staticmethod
-    def load_dataset_static(script_name, prep_type, data_type, dataset_dir):
-        file_name = "{}.{}.{}.pkl".format(script_name, prep_type, data_type)
+    def load_dataset_static(script_name, limitation, prep_type, data_type, dataset_dir, mode="standard"):
+        file_name = "{}.{}.{}.{}.{}.pkl".format(script_name, limitation, prep_type, data_type, mode)
         file_path = Path(dataset_dir) / file_name
-        return pd.read_pickle(file_path)
-
-    @staticmethod
-    def load_finetuning_dataset(config, data_type, term, cluster_size, selection_size):
-        prep_type = config.preprocessing_type
-        file_name = "{}.{}.{}.{}.c{}.s{}.pkl".format(config.script_name, prep_type, data_type,
-                                                     term, cluster_size, selection_size)
-        file_path = Path(config.dataset_dir) / "finetuning" / file_name
         return pd.read_pickle(file_path)
 
     @staticmethod
@@ -100,7 +89,7 @@ class Util:
 
     @staticmethod
     def load_prompt(config):
-        file_name = "{}.prompt.yml".format(config.script_name)
+        file_name = "{}.{}.{}.prompt.yml".format(config.preprocess_name, config.limitation, config.mode)
         file_path = Path(config.dataset_dir) / file_name
         return Util.load_prompt_config(file_path)
 
