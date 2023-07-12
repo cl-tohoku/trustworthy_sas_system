@@ -48,6 +48,11 @@ class Util:
             return yaml.load(f)
 
     @staticmethod
+    def load_masking_config(config_path):
+        with open(config_path, "r") as f:
+            return yaml.load(f)
+
+    @staticmethod
     def load_sweep_config(sweep_path):
         """
         :param sweep_path: str, e.g. "config/sweep.yml"

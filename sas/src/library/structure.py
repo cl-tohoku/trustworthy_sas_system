@@ -57,6 +57,7 @@ class PreprocessConfig(YAML):
     script_path: str = "data/data_ys/Y14/Y14_1-2_1_3.json"
     prompt_path: str = "config/prompt/test_prompt.yml"
     contamination_path: str = ""
+    masking_path: str = ""
     dataset_dir: str = "data/pickle/Y14"
     dataset_type: str = "ys"
     download_ft: bool = False

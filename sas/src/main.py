@@ -27,7 +27,10 @@ class Main:
         config = Util.load_preprocess_config(config_path)
         config.update(kwargs)
         PreprocessBase(config)()
-        PreprocessContamination(config)()
+        if config.contamination_path:
+            PreprocessContamination(config)()
+        if config.masking_path:
+            PreprocessMasking(config)()
 
     def train(self, train_config_path, **kwargs):
         # load configuration files
@@ -66,20 +69,6 @@ class Main:
     def integrate_performance(self, prompt_name, eval_dir_path):
         Integration()(prompt_name, eval_dir_path)
 
-    def execute_combinations(self, prompt_list, limitation_list, config_file_list,
-                             preprocessing=True, training=True, evaluation=True, clustering=True ):
-        # parse argments
-        prompt_list = [str(x) for x in prompt_list.split(" ")]
-        limitation_list = [int(x) for x in limitation_list.split(" ")] if type(limitation_list) == str else [limitation_list]
-        config_file_list = [str(x) for x in config_file_list.split(" ")]
-        # for loop
-        for prompt_name, limitation, config_file_name in product(prompt_list, limitation_list, config_file_list):
-            print(prompt_name, limitation, config_file_name)
-            try:
-                self.execute(prompt_name, limitation, config_file_name, preprocessing, training, evaluation, clustering)
-            except Exception as e:
-                print("Error:", e)
-
     def execute(self, prompt_name="Y14_1213", script_name="Y14_1213_XX", limitation=0, config_file_name="template.yml",
                 preprocessing=True, training=True, evaluation=True, clustering=True, mode="standard"):
 
@@ -87,8 +76,11 @@ class Main:
         if preprocessing:
             print("Preprocess...")
             preprocess_config_path = "config/ys/preprocess/{}.yml".format(prompt_name)
+            cont_path = "config/contamination/{}.yml".format(prompt_name)
+            mask_path = "config/masking/{}.yml".format(prompt_name)
             self.preprocess(config_path=preprocess_config_path, preprocess_name=prompt_name,
-                            limitation=limitation, download_ft=False)
+                            limitation=limitation, download_ft=False,
+                            contamination_path=cont_path, masking_path=mask_path)
 
         # データセットを読むのに preprocess_name, limitation, mode が必要
         # script_name は実験内容を表すユニークな名称
@@ -110,75 +102,8 @@ class Main:
             self.clustering(eval_config_path=eval_config_path, preprocess_name=prompt_name, mode=mode,
                             script_name=script_name, limitation=limitation)
 
-    def finetuning_preprocess(self, prep_config_path, eval_config_path, **kwargs):
-        config = Util.load_preprocess_config(prep_config_path)
-        config.update(kwargs)
-        eval_config = Util.load_eval_config(eval_config_path)
-        eval_config.update(kwargs)
-        PreprocessFinetuning(config, eval_config)()
-
-    def finetuning_train(self, train_config_path, **kwargs):
-        config = Util.load_train_config(train_config_path)
-        config.update(kwargs)
-        TrainFinetuning(config).execute()
-
-    def finetuning_eval(self, eval_config_path, given_term, **kwargs):
-        config = Util.load_eval_config(eval_config_path)
-        config.update(kwargs)
-        EvalFinetuning(config).execute(given_term=given_term)
-
     def fitness(self, eval_dir, cluster_dir, script_name, **kwargs):
         Integration().quantitative_fitness(eval_dir, cluster_dir, script_name)
-
-    def masking_preprocess(self, prep_config_path, masking_span, previous_script_name, **kwargs):
-        config = Util.load_preprocess_config(prep_config_path)
-        config.update(kwargs)
-        PreprocessMasking(config)(masking_span, previous_script_name)
-
-    def masking_train(self, train_config_path, masking_span, **kwargs):
-        config = Util.load_train_config(train_config_path)
-        config.update(kwargs)
-        TrainMasking(config, masking_span).execute()
-
-    def masking_evaluate(self, eval_config_path, masking_span, **kwargs):
-        config = Util.load_eval_config(eval_config_path)
-        config.update(kwargs)
-        EvalMasking(config, masking_span).execute()
-
-    def masking_clustering(self, eval_config_path, masking_span, **kwargs):
-        config = Util.load_eval_config(eval_config_path)
-        config.update(kwargs)
-        ClusteringMasking(config, masking_span).make_clustering_results()
-
-    def masking_execute(self, prompt_name="Y14_1213", masking_span="", previous_script_name="",
-                        limitation=0, config_file_name="template.yml",
-                        preprocessing=True, training=True, evaluation=True, clustering=True):
-        script_name = "{}_{}_{}".format(prompt_name, limitation, masking_span)
-        print(script_name)
-
-        if preprocessing:
-            print("Preprocess...")
-            preprocess_config_path = "config/ys/preprocess/{}.yml".format(prompt_name)
-            self.masking_preprocess(prep_config_path=preprocess_config_path, masking_span=masking_span,
-                                    previous_script_name=previous_script_name,
-                                    script_name=script_name, train_size_limitation=limitation, download_ft=False)
-
-        if training:
-            print("Training...")
-            train_config_path = "config/ys/train/{}".format(config_file_name)
-            self.masking_train(train_config_path=train_config_path, masking_span=masking_span,
-                               script_name=script_name, wandb_group=script_name)
-
-        if evaluation:
-            # evaluate
-            print("Evaluating...")
-            eval_config_path = "config/ys/eval/{}".format(config_file_name)
-            self.masking_evaluate(eval_config_path=eval_config_path, masking_span=masking_span, script_name=script_name)
-
-        if clustering:
-            print("Clustering...")
-            eval_config_path = "config/ys/eval/{}".format(config_file_name)
-            self.clustering(eval_config_path=eval_config_path, masking_span=masking_span, script_name=script_name)
 
     def check_masking(self, eval_dir, script_name, masking_span, term):
         CheckMasking().check_masking_efficiency(eval_dir, script_name, masking_span, term)
