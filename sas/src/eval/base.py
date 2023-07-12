@@ -31,6 +31,7 @@ class EvalBase:
         # set output size for prompt
         self.model_config.output_size = self.select_model_output()
         self.tokenizer = BertJapaneseTokenizer.from_pretrained("cl-tohoku/bert-base-japanese-char-v2")
+        self.train_size = 100
 
     def select_model_output(self):
         if self.config.target_type == "analytic":
@@ -161,7 +162,7 @@ class EvalBase:
         results = defaultdict(list)
         fitness = defaultdict(list)
         attr = FeatureAttribution(self.config, self.model)
-        for idx, script in enumerate(tqdm(dataset.iterrows())):
+        for idx, script in enumerate(islice(tqdm(dataset.iterrows()), self.train_size)):
             script = pd.DataFrame(script[1]).T
             input_ids, args, gold_label, annotation_matrix = self.script_extractor(script)
             # predict
@@ -238,15 +239,16 @@ class EvalBase:
 
     def __call__(self):
         self.model = Util.load_model(self.config, self.model_config, finetuning=self.config.finetuning)
+        # train set
+        print("Train")
+        train_dataset = Util.load_dataset(self.config, "train",)
+        self.train_size = len(train_dataset)
+        self.eval(train_dataset, "train")
         # test set
         pprint(self.config)
         print("Test")
         test_dataset = Util.load_dataset(self.config, "test",)
         self.eval(test_dataset, "test")
-        # train set
-        print("Train")
-        train_dataset = Util.load_dataset(self.config, "train",)
-        self.eval(train_dataset, "train")
 
 
 class EvalStatic:

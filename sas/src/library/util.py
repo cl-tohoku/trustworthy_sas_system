@@ -235,13 +235,13 @@ class Util:
         dataframe.to_pickle((Path(config.eval_dir) / config.script_name / "finetuning" / pkl_file_name))
 
     @staticmethod
-    def save_masking_df(dataframe, config, data_type, suffix, csv, masking_span):
-        csv_file_name = "{}_{}_{}.{}.csv".format(config.unique_id, data_type, suffix, masking_span)
-        pkl_file_name = "{}_{}_{}.{}.pkl".format(config.unique_id, data_type, suffix, masking_span)
-        os.makedirs(str(Path(config.eval_dir) / config.script_name / "masking"), exist_ok=True)
+    def save_masking_df(dataframe, config, data_type, suffix, csv, masking_span=None):
+        csv_file_name = "{}_{}_{}.csv".format(config.unique_id, data_type, suffix)
+        pkl_file_name = "{}_{}_{}.pkl".format(config.unique_id, data_type, suffix)
+        os.makedirs(str(Path(config.eval_dir) / config.script_name), exist_ok=True)
         if csv:
-            dataframe.to_csv((Path(config.eval_dir) / config.script_name / "masking" / csv_file_name), index=False)
-        dataframe.to_pickle((Path(config.eval_dir) / config.script_name / "masking" / pkl_file_name))
+            dataframe.to_csv((Path(config.eval_dir) / config.script_name / csv_file_name), index=False)
+        dataframe.to_pickle((Path(config.eval_dir) / config.script_name / pkl_file_name))
 
     @staticmethod
     def load_eval_df(config, data_type, suffix):
@@ -257,8 +257,8 @@ class Util:
 
     @staticmethod
     def load_masking_df(config, data_type, suffix, masking):
-        file_name = "{}_{}_{}.{}.pkl".format(config.unique_id, data_type, suffix, masking)
-        df = pd.read_pickle((Path(config.eval_dir) / config.script_name / "masking" / file_name))
+        file_name = "{}_{}_{}.pkl".format(config.unique_id, data_type, suffix)
+        df = pd.read_pickle((Path(config.eval_dir) / config.script_name / file_name))
         return df
 
     @staticmethod

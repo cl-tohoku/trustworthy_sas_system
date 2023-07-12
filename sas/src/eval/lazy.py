@@ -14,6 +14,7 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 import seaborn as sns
 import copy
 import matplotlib.pyplot as plt
+import re
 from sklearn.manifold import TSNE
 from sklearn.feature_extraction.text import CountVectorizer
 from scipy import stats
@@ -228,3 +229,37 @@ class Integration:
         df = self.load_performances(eval_dir_path, prompt_name)
         df = df.sort_values(by='size')
         self.plot(df, prompt_name)
+
+
+class CheckMasking:
+    def __init__(self):
+        pass
+
+    def check_masking_efficiency(self, eval_dir, script_name, masking_span, term):
+        eval_dir_path = Path(eval_dir) / script_name
+        attr_df = pd.read_pickle(eval_dir_path / "analytic_train_attributions.pkl")
+        selected_df = attr_df[["Token", "Attribution", "Term"]]
+        selected_df = selected_df[selected_df["Term"] == term]
+        selected_df["match_idx"] = selected_df["Token"].apply(lambda x: self.find_spans("".join(x[1:-1]), masking_span))
+        score_list = []
+        text_list = []
+        for index, row in selected_df.iterrows():
+            if row["match_idx"]:
+                score_list.append(np.sum(np.array(row["Attribution"])[row["match_idx"]]))
+                text_list.append(np.array(row["Token"])[row["match_idx"]])
+        print(np.mean(score_list), np.max(score_list), np.min(score_list))
+        print(score_list[:5])
+        print(len(attr_df))
+
+    @staticmethod
+    def find_spans(text, pattern):
+        spans = []
+        regex = re.compile(pattern)
+        matches = regex.finditer(text)
+
+        for match in matches:
+            span = match.span()
+            spans.extend([i + 1 for i in range(*span)])
+
+        return spans
+

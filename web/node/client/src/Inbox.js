@@ -79,7 +79,7 @@ export function Inbox(props){
             <div className="flex flex-col flex-1 bg-gray-0">
               <div className="flex-1 p-4 bg-gray-200 pt-6">
                 <HeatmapWrapper result={result} setResult={setResult} setting={setting} mask={mask}
-                  dataType={dataType} clusterSize={clusterSize} keyword={keyword}/>
+                  dataType={dataType} clusterSize={clusterSize} keyword={keyword} setKeyword={setKeyword}/>
               </div>
             </div>
           </div>

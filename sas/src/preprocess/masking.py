@@ -13,10 +13,12 @@ sys.path.append("..")
 from preprocess.base import PreprocessBase
 from library.util import Util
 
+
 class PreprocessMasking:
     def __init__(self, prep_config):
         self.config = prep_config
         self.base = PreprocessBase(self.config)
+        self.mask_id = 101 # unk
         warnings.simplefilter("ignore", SettingWithCopyWarning)
 
     def to_pickle(self, df, data_type, masking_span):
@@ -43,7 +45,7 @@ class PreprocessMasking:
             # make masked data
             if any(masked_bool_list):
                 masked_ids_array = np.array(ids_list)
-                masked_ids_array[masked_bool_list] = 0
+                masked_ids_array[masked_bool_list] = self.mask_id
                 series = df.iloc[c_idx].copy()
                 series["input_ids"] = masked_ids_array.tolist()
                 series["masked_from"] = c_idx
@@ -61,6 +63,7 @@ class PreprocessMasking:
         masked_train_df = self.masking(train_df, masking_span)
         masked_valid_df = self.masking(valid_df, masking_span)
 
+        print("mask_id: {}".format(self.mask_id))
         print("train size: {}".format(len(masked_train_df)))
         print("valid size: {}".format(len(masked_valid_df)))
 

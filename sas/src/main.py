@@ -11,7 +11,7 @@ from train.base import TrainStatic
 from train.finetuning import TrainFinetuning
 from train.masking import TrainMasking
 from eval.base import EvalBase
-from eval.lazy import Integration
+from eval.lazy import Integration, CheckMasking
 from eval.base import EvalStatic
 from eval.clustering import Clustering2
 from eval.finetuning import EvalFinetuning
@@ -147,7 +147,7 @@ class Main:
     def masking_execute(self, prompt_name="Y14_1213", masking_span="", previous_script_name="",
                         limitation=0, config_file_name="template.yml",
                         preprocessing=True, training=True, evaluation=True, clustering=True):
-        script_name = "{}_{}".format(prompt_name, masking_span)
+        script_name = "{}_{}_{}".format(prompt_name, limitation, masking_span)
         print(script_name)
 
         if preprocessing:
@@ -173,6 +173,9 @@ class Main:
             print("Clustering...")
             eval_config_path = "config/ys/eval/{}".format(config_file_name)
             self.clustering(eval_config_path=eval_config_path, masking_span=masking_span, script_name=script_name)
+
+    def check_masking(self, eval_dir, script_name, masking_span, term):
+        CheckMasking().check_masking_efficiency(eval_dir, script_name, masking_span, term)
 
 
 if __name__ == "__main__":

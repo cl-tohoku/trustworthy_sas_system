@@ -32,15 +32,16 @@ class EvalMasking(EvalBase):
 
     def execute(self):
         self.model = Util.load_masking_model(self.config, self.model_config, self.masking_span)
+        # train set
+        train_dataset = Util.load_masking_dataset(self.config, "train", self.masking_span)
+        print("Train, size={}".format(len(train_dataset)))
+        self.train_size = len(train_dataset)
+        self.eval(train_dataset, "train")
         # test set
         pprint(self.config)
         print("Test")
         test_dataset = Util.load_masking_dataset(self.config, "test", self.masking_span)
         self.eval(test_dataset, "test")
-        # train set
-        print("Train")
-        train_dataset = Util.load_masking_dataset(self.config, "train", self.masking_span)
-        self.eval(train_dataset, "train")
 
 
 class ClusteringMasking(Clustering2):

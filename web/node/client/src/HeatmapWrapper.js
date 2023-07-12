@@ -58,17 +58,20 @@ const HeatmapWrapper = (props) => {
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
+      props.setKeyword('');
       GetClusterResults();
     }, 200);
 
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [, props.clusterSize, props.mask, props.setting, props.dataType]);
+  }, [, props.clusterSize, props.setting, props.dataType]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      GetSearchResults();
+      if (props.keyword) {
+        GetSearchResults();
+      }
     }, 200);
 
     return () => {
@@ -76,6 +79,7 @@ const HeatmapWrapper = (props) => {
     };
   }, [props.keyword]);
 
+  console.log(props.keyword)
   return (
     <div>
       <div className="grid grid-cols-1 gap-2">
