@@ -58,6 +58,7 @@ class PreprocessConfig(YAML):
     prompt_path: str = "config/prompt/test_prompt.yml"
     contamination_path: str = ""
     masking_path: str = ""
+    supervising_path: str = ""
     dataset_dir: str = "data/pickle/Y14"
     dataset_type: str = "ys"
     download_ft: bool = False

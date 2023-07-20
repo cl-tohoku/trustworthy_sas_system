@@ -190,15 +190,10 @@ class EvalBase:
 
                 # for xai
                 attribution, int_grad, emb, baseline_value = attr.calc_gradient(input_ids, target, args, multiply=True)
-                prediction_value = pred_value_list[target]
                 results["Attribution"].append(attribution)
                 results["Integrated_Gradients"].append(int_grad)
-                #results["Embedding"].append(emb)
-                #results["Baseline_Value"].append(baseline_value)
-                #results["Prediction_Value"].append(prediction_value)
-                #results["Attribution_Value"].append(float(np.sum(int_grad)))
 
-                # xai eval (fitness(
+                # xai eval (fitness)
                 int_score = self.int_grad_metric(attribution, annotation_matrix[target])
                 recall, precision = self.overlap_metric(attribution, annotation_matrix[target])
                 fitness["Gold"].append(gold_label[target])
@@ -209,13 +204,6 @@ class EvalBase:
                 print('\rR:{:.5f}, P:{:.5f}'.format(recall, precision), end='')
 
         return pd.DataFrame(results), pd.DataFrame(fitness)
-
-    def calc_ranker(self, input_ids, attribution):
-        attr_ranking = np.argsort(attribution)[::-1]
-        ids = input_ids.squeeze(0).to("cpu").numpy()
-        ranker_token_ids = ids[attr_ranking[:20]].tolist()
-        ranker_string = self.id_to_string_list(ranker_token_ids)
-        return ranker_string, attr_ranking
 
     def eval(self, dataset, data_type):
         self.model.eval()

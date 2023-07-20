@@ -75,19 +75,10 @@ class TrainBase:
             max_score = sum(self.prompt_config.max_scores)
 
         # choose loss function
-        if "mse" in self.config.loss.lower():
-            self.loss = Loss.mse_loss(max_score)
-        elif "entropy" in self.config.loss.lower():
-            RuntimeError("Unimplemented")
-        elif "attention" in self.config.loss.lower():
-            self.loss = Loss.attn_loss(max_score, _lambda=self.config.attention_lambda)
-        elif "gradient" in self.config.loss.lower():
-            self.loss = Loss.grad_loss(max_score, _lambda=self.config.gradient_lambda)
-        elif "combination" in self.config.loss.lower():
-            self.loss = Loss.comb_loss(max_score, _lambda_attn=self.config.attention_lambda,
-                                       _lambda_grad=self.config.gradient_lambda)
+        if "supervising" in self.config.mode.lower():
+            self.loss = Loss.attn_loss(max_score, _lambda=1e+0)
         else:
-            raise RuntimeError("Invalid loss definition")
+            self.loss = Loss.mse_loss(max_score)
 
     def set_optimizer(self):
         self.optimizer = AdamW(self.model.parameters(), lr=self.config.learning_rate)
@@ -120,31 +111,19 @@ class TrainBase:
     def predict(self, data_tuple):
         inputs, _ = data_tuple
         output = self.model(inputs[0], inputs[1], inputs[2], attention=True)
-        if self.config.loss == "attention":
-            return output
-        elif self.config.loss == "gradient":
-            grad = self.calc_gradient(inputs)
-            return output[0], grad
-        elif self.config.loss == "combination":
-            grad = self.calc_gradient(inputs)
-            return output + (grad, )
-        else:
-            return output[0]
+        return output
 
     def calc_loss(self, prediction, data_tuple):
         inputs, scores = data_tuple
         target_score = scores[0] if self.config.target_type == "analytic" else scores[1]
-        if self.config.loss == "attention":
-            return self.loss(prediction=prediction[0], gold=target_score, attention=prediction[1],
-                             annotation=scores[2], term_idx=-1)
-        elif self.config.loss == "gradient":
-            return self.loss(prediction=prediction[0], gold=target_score, gradient=prediction[1],
-                             annotation=scores[2], term_idx=-1)
-        elif self.config.loss == "combination":
-            return self.loss(prediction=prediction[0], gold=target_score, attention=prediction[1],
-                             gradient=prediction[2], annotation=scores[2], term_idx=-1)
+        prediction_score = prediction[0]
+
+        # choose loss function
+        if "supervising" in self.config.mode.lower():
+            return self.loss(prediction=prediction_score, gold=target_score,
+                             attention=prediction[1], annotation=scores[2], term_idx=-1)
         else:
-            return self.loss(input=prediction, target=target_score)
+            return self.loss(input=prediction_score, target=target_score)
 
     def training_phase(self, train_loader):
         self.model.train()

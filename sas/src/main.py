@@ -6,6 +6,7 @@ from library.util import Util
 from preprocess.base import PreprocessBase
 from preprocess.finetuning import PreprocessFinetuning
 from preprocess.masking import PreprocessMasking
+from preprocess.supervising import PreprocessSupervising
 from preprocess.contamination import PreprocessContamination
 from train.base import TrainBase
 from train.base import TrainStatic
@@ -31,6 +32,8 @@ class Main:
             PreprocessContamination(config)()
         if config.masking_path:
             PreprocessMasking(config)()
+        if config.supervising_path:
+            PreprocessSupervising(config)()
 
     def train(self, train_config_path, **kwargs):
         # load configuration files
@@ -72,30 +75,36 @@ class Main:
     def execute(self, prompt_name="Y14_1213", script_name="Y14_1213_XX", limitation=0, config_file_name="template.yml",
                 preprocessing=True, training=True, evaluation=True, clustering=True, mode="standard"):
 
-        print(script_name)
+        # 前処理
         if preprocessing:
             print("Preprocess...")
+            # 前処理では全てやる
+            # config 以下に前処理対象を記述する
             preprocess_config_path = "config/ys/preprocess/{}.yml".format(prompt_name)
+            # path を prompt 名から決め打ち
             cont_path = "config/contamination/{}.yml".format(prompt_name)
             mask_path = "config/masking/{}.yml".format(prompt_name)
-            self.preprocess(config_path=preprocess_config_path, preprocess_name=prompt_name,
-                            limitation=limitation, download_ft=False,
-                            contamination_path=cont_path, masking_path=mask_path)
+            supervising_path = "config/supervising/{}.yml".format(prompt_name)
+            # config に載せて実行
+            self.preprocess(config_path=preprocess_config_path, preprocess_name=prompt_name, limitation=limitation, download_ft=False,
+                            contamination_path=cont_path, masking_path=mask_path, supervising_path=supervising_path)
 
-        # データセットを読むのに preprocess_name, limitation, mode が必要
         # script_name は実験内容を表すユニークな名称
+        # 訓練
         if training:
             print("Training...")
             train_config_path = "config/ys/train/{}".format(config_file_name)
             self.train(train_config_path=train_config_path, preprocess_name=prompt_name, mode=mode,
                        script_name=script_name, limitation=limitation, wandb_group=script_name)
 
+        # 評価
         if evaluation:
             print("Evaluating...")
             eval_config_path = "config/ys/eval/{}".format(config_file_name)
             self.evaluate(eval_config_path=eval_config_path, preprocess_name=prompt_name, mode=mode,
                           script_name=script_name, limitation=limitation)
 
+        # クラスタリング
         if clustering:
             print("Clustering...")
             eval_config_path = "config/ys/eval/{}".format(config_file_name)
