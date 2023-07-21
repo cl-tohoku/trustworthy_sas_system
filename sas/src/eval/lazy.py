@@ -194,28 +194,19 @@ class Integration:
         plt.tight_layout()
         plt.savefig("tmp/clustering_{}_fitness.png".format(cluster_size))
 
-
-    def quantitative_fitness(self,  eval_dir, cluster_dir, script_name):
-        # load baseline
-        eval_dir_path = Path(eval_dir)  / script_name
-        analytic_df = pd.read_pickle(eval_dir_path / "analytic_train_fitness.pkl")
-        analytic_df["method"] = "baseline"
-        analytic_df = analytic_df[analytic_df["Term"] == "C"].reset_index(drop=True)
-        analytic_df["Sample_ID"] = [idx for idx in range(len(analytic_df))]
-        analytic_df = analytic_df[analytic_df["Gold"] > 0.0]
-        # load clustering results
-        cluster_file_name = "{}_C_R".format(script_name)
-        cluster_dir_path = Path(cluster_dir) / "train" / cluster_file_name
-        cluster_df_list = [pd.read_pickle(cluster_dir_path / str(idx) / "cluster.pkl") for idx in range(2, 31)]
-        # test
-        print(analytic_df.groupby("method").std()["Recall_Score"])
-        recall_mean = analytic_df["Recall_Score"].mean()
-        sns.distplot(analytic_df["Recall_Score"], kde=False)
-        plt.savefig("tmp/hist.png")
-        # inspection
-        self.quantitative_random(analytic_df)
-        cluster_df = cluster_df_list[8]
-        self.quantitative_clustering(analytic_df, cluster_df, cluster_size=10)
+    def quantitative_fitness(self,  eval_dir, script_name):
+        fig, axes = plt.subplots(2, 2, figsize=(14, 7))
+        for idx, term in enumerate(["A", "B", "C", "D"]):
+            eval_dir_path = Path(eval_dir)  / script_name
+            analytic_df = pd.read_pickle(eval_dir_path / "analytic_train_fitness.pkl")
+            analytic_df = analytic_df[analytic_df["Term"] == term].reset_index(drop=True)
+            analytic_df["Sample_ID"] = [idx for idx in range(len(analytic_df))]
+            analytic_df = analytic_df[analytic_df["Gold"] > 0.0]
+            ax = axes[idx // 2, idx % 2]
+            sns.histplot(analytic_df["Recall_Score"], bins=20, alpha=1.0, binrange=(0.0, 1.0), ax=ax)
+            ax.set_title("項目: {}".format(term))
+        plt.tight_layout()
+        plt.savefig("tmp/{}.png".format(script_name))
 
     @staticmethod
     def sample(data, n):

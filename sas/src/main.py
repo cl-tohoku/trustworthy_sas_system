@@ -111,8 +111,8 @@ class Main:
             self.clustering(eval_config_path=eval_config_path, preprocess_name=prompt_name, mode=mode,
                             script_name=script_name, limitation=limitation)
 
-    def fitness(self, eval_dir, cluster_dir, script_name, **kwargs):
-        Integration().quantitative_fitness(eval_dir, cluster_dir, script_name)
+    def fitness(self, eval_dir, script_name, **kwargs):
+        Integration().quantitative_fitness(eval_dir,  script_name)
 
     def check_masking(self, eval_dir, script_name, masking_span, term):
         CheckMasking().check_masking_efficiency(eval_dir, script_name, masking_span, term)

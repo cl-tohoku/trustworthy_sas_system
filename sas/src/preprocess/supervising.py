@@ -17,7 +17,6 @@ from library.util import Util
 class PreprocessSupervising:
     def __init__(self, prep_config):
         self.config = prep_config
-        self.mask_id = 101 # unk
         warnings.simplefilter("ignore", SettingWithCopyWarning)
 
     def execute(self, mode):
