@@ -72,22 +72,18 @@ class Main:
     def integrate_performance(self, prompt_name, eval_dir_path):
         Integration()(prompt_name, eval_dir_path)
 
+    def make_dataset(self, prompt_name="Y14_1213", limitation=0, contamination=False, masking=False, supervising=False):
+        print("Preprocess...")
+        preprocess_config_path = "config/ys/preprocess/{}.yml".format(prompt_name)
+        cont_path = "config/contamination/{}.yml".format(prompt_name) if contamination else ""
+        mask_path = "config/masking/{}.yml".format(prompt_name) if masking else ""
+        supervising_path = "config/supervising/{}.yml".format(prompt_name) if supervising else ""
+        # config に載せて実行
+        self.preprocess(config_path=preprocess_config_path, preprocess_name=prompt_name, limitation=limitation,
+                        contamination_path=cont_path, masking_path=mask_path, supervising_path=supervising_path)
+
     def execute(self, prompt_name="Y14_1213", script_name="Y14_1213_XX", limitation=0, config_file_name="template.yml",
                 preprocessing=True, training=True, evaluation=True, clustering=True, mode="standard"):
-
-        # 前処理
-        if preprocessing:
-            print("Preprocess...")
-            # 前処理では全てやる
-            # config 以下に前処理対象を記述する
-            preprocess_config_path = "config/ys/preprocess/{}.yml".format(prompt_name)
-            # path を prompt 名から決め打ち
-            cont_path = "config/contamination/{}.yml".format(prompt_name)
-            mask_path = "config/masking/{}.yml".format(prompt_name)
-            supervising_path = "config/supervising/{}.yml".format(prompt_name)
-            # config に載せて実行
-            self.preprocess(config_path=preprocess_config_path, preprocess_name=prompt_name, limitation=limitation, download_ft=False,
-                            contamination_path=cont_path, masking_path=mask_path, supervising_path=supervising_path)
 
         # script_name は実験内容を表すユニークな名称
         # 訓練

@@ -1,0 +1,7 @@
+scoring_item_num: 3
+deduction_eos: False
+deduction_spl: False
+max_scores:
+  - 3
+  - 5
+  - 4

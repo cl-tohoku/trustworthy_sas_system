@@ -1,4 +1,4 @@
-script_name: "Y14_2115"
+preprocess_name: "Y14_2115"
 script_path: "data/data_ys/Y14/Y14_2-1_1_5.json"
 dataset_dir: "data/pickle/Y14"
 prompt_path: "config/prompt/Y14_2115.yml"

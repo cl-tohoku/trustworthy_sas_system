@@ -49,7 +49,10 @@ class PreprocessBert:
                 annotation = self.remove_u3000(text, annotation)
 
             annotation = [0] + annotation + [0]
-            assert len(annotation) == len(bert_data["input_ids"])
+            if len(annotation) != len(bert_data["input_ids"]):
+                # 3点リーダの場合ずれる、とりあえず雑に埋めておく
+                padding_length = len(bert_data["input_ids"]) - len(annotation)
+                annotation.extend([0] * padding_length)
             # padded = Util.padding(annotation, self.config.max_length, 0)
             padded = annotation
             annotation_matrix.append(padded)
