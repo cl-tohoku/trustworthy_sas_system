@@ -28,12 +28,11 @@ class Main:
         config = Util.load_preprocess_config(config_path)
         config.update(kwargs)
         PreprocessBase(config)()
+        PreprocessSupervising(config)()
         if config.contamination_path:
             PreprocessContamination(config)()
         if config.masking_path:
             PreprocessMasking(config)()
-        if config.supervising_path:
-            PreprocessSupervising(config)()
 
     def train(self, train_config_path, **kwargs):
         # load configuration files
@@ -83,7 +82,10 @@ class Main:
                         contamination_path=cont_path, masking_path=mask_path, supervising_path=supervising_path)
 
     def execute(self, prompt_name="Y14_1213", script_name="Y14_1213_XX", limitation=0, config_file_name="template.yml",
-                preprocessing=True, training=True, evaluation=True, clustering=True, mode="standard"):
+                mode="standard", pretrained_script_name="", training=True, evaluation=True, clustering=True,):
+        """
+        script_name は自由に指定できる引数、実験名になる、
+        """
 
         # script_name は実験内容を表すユニークな名称
         # 訓練
@@ -91,7 +93,8 @@ class Main:
             print("Training...")
             train_config_path = "config/ys/train/{}".format(config_file_name)
             self.train(train_config_path=train_config_path, preprocess_name=prompt_name, mode=mode,
-                       script_name=script_name, limitation=limitation, wandb_group=script_name)
+                       script_name=script_name, limitation=limitation, wandb_group=script_name,
+                       pretrained_script_name=pretrained_script_name)
 
         # 評価
         if evaluation:

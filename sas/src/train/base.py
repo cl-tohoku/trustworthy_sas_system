@@ -11,6 +11,8 @@ import uuid
 import datetime
 from captum.attr import IntegratedGradients
 import torch.nn.functional as F
+from scipy.special import roots_legendre
+from collections import defaultdict
 
 sys.path.append("..")
 from library.util import Util
@@ -40,6 +42,7 @@ class TrainBase:
 
         self.finetuning = finetuning
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.supervising = True if "supervising" in self.config.mode.lower() else False
 
     def initialize(self,):
         if self.config.wandb:
@@ -75,8 +78,8 @@ class TrainBase:
             max_score = sum(self.prompt_config.max_scores)
 
         # choose loss function
-        if "supervising" in self.config.mode.lower():
-            self.loss = Loss.attn_loss(max_score, _lambda=1e+0)
+        if self.supervising:
+            self.loss = Loss.grad_loss(max_score, _lambda=1e+0)
         else:
             self.loss = Loss.mse_loss(max_score)
 
@@ -84,7 +87,11 @@ class TrainBase:
         self.optimizer = AdamW(self.model.parameters(), lr=self.config.learning_rate)
 
     def set_model(self):
-        self.model = Util.select_model(self.model_config, self.config)
+        if self.supervising:
+            self.model = Util.load_model(self.config, self.model_config, pretrained=True)
+        else:
+            self.model = Util.select_model(self.model_config, self.config)
+
         if torch.cuda.is_available():
             self.model.cuda()
         if self.config.parallel:
@@ -102,11 +109,40 @@ class TrainBase:
         loader = Loader.to_bert_dataloader if self.prep_type == "bert" else Loader.to_ft_dataloader
         return loader(dataset, self.config.batch_size, self.model_config.attention_hidden_size)
 
-    def calc_gradient(self, inputs):
+    def calc_gradient(self, data_tuple):
+        inputs, scores = data_tuple
         embedding_func = self.model.module.bert.embeddings
-        grad_list = [Util.calc_gradient_static(self.model, embedding_func, inputs[0], inputs[1], inputs[2], target=idx)
-                     for idx in range(self.model_config.output_size)]
-        return torch.stack(grad_list).permute(1, 0, 2)
+        embeddings = embedding_func(inputs[0])
+        embeddings.retain_grad()
+        prediction_score = self.model(embeddings, inputs[1], inputs[2],
+                                      attention=False, inputs_embeds=True)
+
+        # Baselineはゼロテンソルとします。
+        baseline = torch.zeros(embeddings.size()).to(self.device)
+        # ガウス・ルジャンドルの数値積分法で用いるサンプル点と重みを計算します。
+        step_size = 32
+        x, weights = roots_legendre(step_size)
+
+        # 積分パス上のすべての点を生成します。
+        scaled_inputs = [baseline + (0.5 * (xi + 1)) * (embeddings - baseline) for xi in x]
+
+        # 勾配を計算するためにautogradの追跡を有効にします。
+        gradient_dict = defaultdict(list)
+        for scaled_input in scaled_inputs:
+            output = self.model(scaled_input, inputs[1], inputs[2], attention=False, inputs_embeds=True)
+            output = torch.sum(output, dim=1)
+            for idx in range(output.shape[0]):
+                gradient_dict[str(idx)].append(torch.autograd.grad(output[idx], scaled_input, create_graph=True)[0])
+
+        grad_tensor = []
+        for key in gradient_dict.keys():
+            avg_gradients = sum(w * g for w, g in zip(weights, gradient_dict[key])) / 2
+            grad_tensor.append((embeddings - baseline) * avg_gradients)
+
+        grad_tensor = torch.stack(grad_tensor).reshape(prediction_score.shape[0], *embeddings.shape)
+        grad_tensor = grad_tensor.permute(1, 0, 2, 3)
+        output = (prediction_score, grad_tensor)
+        return output
 
     def predict(self, data_tuple):
         inputs, _ = data_tuple
@@ -119,9 +155,9 @@ class TrainBase:
         prediction_score = prediction[0]
 
         # choose loss function
-        if "supervising" in self.config.mode.lower():
+        if self.supervising:
             return self.loss(prediction=prediction_score, gold=target_score,
-                             attention=prediction[1], annotation=scores[2], term_idx=-1)
+                             gradient=prediction[1], annotation=scores[2], term_idx=-1)
         else:
             return self.loss(input=prediction_score, target=target_score)
 
@@ -130,7 +166,7 @@ class TrainBase:
         losses = []
         for data_tuple in tqdm(train_loader):
             self.optimizer.zero_grad()
-            output = self.predict(data_tuple)
+            output = self.calc_gradient(data_tuple) if self.supervising else self.predict(data_tuple)
             loss = self.calc_loss(output, data_tuple)
             loss.backward()
             self.optimizer.step()
@@ -144,7 +180,7 @@ class TrainBase:
         self.model.eval()
         losses = []
         for data_tuple in tqdm(valid_loader):
-            output = self.predict(data_tuple)
+            output = self.calc_gradient(data_tuple) if self.supervising else self.predict(data_tuple)
             loss = self.calc_loss(output, data_tuple)
             losses.append(loss.item())
 

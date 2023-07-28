@@ -149,58 +149,11 @@ class Util:
         torch.save(state_dict, output_path)
 
     @staticmethod
-    def save_masking_model(model, config, masking_span):
-        experiment_id = config.wandb_name if config.unique_id is None else config.unique_id
-        file_name = "{}_{}.{}.state".format(config.script_name, experiment_id, masking_span)
-        os.makedirs(Path(config.model_dir) / "masking", exist_ok=True)
-        output_path = Path(config.model_dir) / "masking" / file_name
-        state_dict = model.state_dict()
-        if config.parallel:
-            state_dict = Util.replace_parallel_state_dict(state_dict)
-        torch.save(state_dict, output_path)
-
-    @staticmethod
-    def save_finetuning_model(model, config, term, cluster_size, selection_size):
-        file_name = "{}_{}.{}.c{}.s{}.state".format(config.script_name, config.finetuning_unique_id, term, cluster_size, selection_size)
-        os.makedirs(Path(config.model_dir) / "finetuning", exist_ok=True)
-        output_path = Path(config.model_dir) / "finetuning" / file_name
-        state_dict = model.state_dict()
-        if config.parallel:
-            state_dict = Util.replace_parallel_state_dict(state_dict)
-        torch.save(state_dict, output_path)
-
-    @staticmethod
-    def load_model(config, model_config, finetuning=False):
-        if finetuning:
-            file_name = "{}_{}.finetuning.state".format(config.script_name, config.unique_id)
-        elif config.validation:
-            file_name = "{}_{}_v{}.state".format(config.script_name, config.unique_id, config.validation_idx)
-        else:
-            file_name = "{}_{}.state".format(config.script_name, config.unique_id)
-
+    def load_model(config, model_config, pretrained=False):
+        script_name = config.pretrained_script_name if pretrained else config.script_name
+        file_name = "{}_{}.state".format(script_name, config.unique_id)
         model = Util.select_model(model_config, config)
         state_dict = torch.load(Path(config.model_dir) / file_name)
-        model.load_state_dict(state_dict)
-        if torch.cuda.is_available():
-            model.cuda()
-
-        return model
-
-    @staticmethod
-    def load_finetuning_model(config, model_config, term, cluster_size, selection_size):
-        file_name = "{}_{}.{}.c{}.s{}.state".format(config.script_name, config.unique_id, term, cluster_size, selection_size)
-        model = Util.select_model(model_config, config)
-        state_dict = torch.load(Path(config.model_dir) / "finetuning" / file_name)
-        model.load_state_dict(state_dict)
-        if torch.cuda.is_available():
-            model.cuda()
-        return model
-
-    @staticmethod
-    def load_masking_model(config, model_config, masking_span):
-        file_name = "{}_{}.{}.state".format(config.script_name, config.unique_id, masking_span)
-        model = Util.select_model(model_config, config)
-        state_dict = torch.load(Path(config.model_dir) / "masking" / file_name)
         model.load_state_dict(state_dict)
         if torch.cuda.is_available():
             model.cuda()
@@ -225,37 +178,7 @@ class Util:
         dataframe.to_pickle((Path(config.eval_dir) / config.script_name / pkl_file_name))
 
     @staticmethod
-    def save_finetuning_df(dataframe, config, data_type, suffix, csv, term, cluster_size, selection_size):
-        csv_file_name = "{}_{}_{}.{}.c{}.s{}.csv".format(config.unique_id, data_type, suffix, term, cluster_size, selection_size)
-        pkl_file_name = "{}_{}_{}.{}.c{}.s{}.pkl".format(config.unique_id, data_type, suffix, term, cluster_size, selection_size)
-        os.makedirs(str(Path(config.eval_dir) / config.script_name / "finetuning"), exist_ok=True)
-        if csv:
-            dataframe.to_csv((Path(config.eval_dir) / config.script_name / "finetuning" / csv_file_name), index=False)
-        dataframe.to_pickle((Path(config.eval_dir) / config.script_name / "finetuning" / pkl_file_name))
-
-    @staticmethod
-    def save_masking_df(dataframe, config, data_type, suffix, csv, masking_span=None):
-        csv_file_name = "{}_{}_{}.csv".format(config.unique_id, data_type, suffix)
-        pkl_file_name = "{}_{}_{}.pkl".format(config.unique_id, data_type, suffix)
-        os.makedirs(str(Path(config.eval_dir) / config.script_name), exist_ok=True)
-        if csv:
-            dataframe.to_csv((Path(config.eval_dir) / config.script_name / csv_file_name), index=False)
-        dataframe.to_pickle((Path(config.eval_dir) / config.script_name / pkl_file_name))
-
-    @staticmethod
     def load_eval_df(config, data_type, suffix):
-        file_name = "{}_{}_{}.pkl".format(config.unique_id, data_type, suffix)
-        df = pd.read_pickle((Path(config.eval_dir) / config.script_name / file_name))
-        return df
-
-    @staticmethod
-    def load_finetuning_df(config, data_type, suffix, term, cluster_size, selection_size):
-        file_name = "{}_{}_{}.{}.c{}.s{}.pkl".format(config.unique_id, data_type, suffix, term, cluster_size, selection_size)
-        df = pd.read_pickle((Path(config.eval_dir) / config.script_name / "finetuning" / file_name))
-        return df
-
-    @staticmethod
-    def load_masking_df(config, data_type, suffix, masking):
         file_name = "{}_{}_{}.pkl".format(config.unique_id, data_type, suffix)
         df = pd.read_pickle((Path(config.eval_dir) / config.script_name / file_name))
         return df

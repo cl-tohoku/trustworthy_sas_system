@@ -116,6 +116,7 @@ class TrainConfig(YAML):
     gradient_lambda: float = 1.0
     limitation: int = 0
     mode: str = "standard"
+    pretrained_script_name: str = ""
 
 
 @dataclass

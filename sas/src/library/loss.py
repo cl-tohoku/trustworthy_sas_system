@@ -46,13 +46,19 @@ class Loss:
             true_score_fixed = gold / prompt_score
             loss_first = F.mse_loss(pred_score_fixed, true_score_fixed)
 
-            fixed_annotation = torch.softmax((annotation - 1.0) * 1e+10, dim=2)
-            fixed_annotation = (fixed_annotation.permute(0, 2, 1) * prompt_score).permute(0, 2, 1)
-            loss_second = F.mse_loss(gradient, fixed_annotation)
+            # calc grad term
+            transformed_annotation = 1.0 - annotation
+            transformed_annotation = transformed_annotation.unsqueeze(3).repeat(1, 1, 1, gradient.shape[3])
+            ideal_gradient = transformed_annotation * gradient
+            # loss_second = F.mse_loss(gradient, ideal_gradient)
+            a, b = torch.flatten(gradient), torch.flatten(ideal_gradient)
+            loss_second = 1.0 - torch.abs(F.cosine_similarity(a, b, dim=0))
 
             loss = loss_first + _lambda * loss_second
 
-            print('\rLoss:{:.5f}, Loss_1:{:.5f}, Loss_2:{:.10f}, '.format(loss, loss_first, loss_second, ), end='')
+            grad_sample = gradient[0][0][0][0]
+            message = '\rLoss:{:.5f}, Loss_1:{:.5f}, Loss_2:{:.5f}, grad:{}'
+            print(message.format(loss, loss_first, _lambda * loss_second, grad_sample), end='')
             return loss
 
         return loss_fn

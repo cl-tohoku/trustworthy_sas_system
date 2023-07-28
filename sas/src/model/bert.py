@@ -17,7 +17,7 @@ class SimpleBert(ModelBase):
             setattr(self, "attn_{}".format(i + 1), Attention(self.config, 768))
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, attention=False,
-                inputs_embeds=False, sent_vector=False):
+                inputs_embeds=False, sent_vector=False, batch_sum=False):
 
         if inputs_embeds:
             bert_output = self.bert(inputs_embeds=input_ids, token_type_ids=token_type_ids, attention_mask=attention_mask)
@@ -43,6 +43,8 @@ class SimpleBert(ModelBase):
             return output, attention_weights
         elif sent_vector:
             return output, query_tensor
+        elif batch_sum:
+            return torch.sum(output, dim=1)
         else:
             return output
 

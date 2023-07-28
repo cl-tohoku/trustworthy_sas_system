@@ -53,4 +53,4 @@ class PreprocessSupervising:
 
     def __call__(self):
         self.execute("standard")
-        self.execute("contamination")
+        # self.execute("contamination")

@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import './App.css';
-import Heatmap from "./Heatmap";
-import ClusterNumber from "./ClusterNumber";
 import {Inbox} from "./Inbox";
 
 function App() {

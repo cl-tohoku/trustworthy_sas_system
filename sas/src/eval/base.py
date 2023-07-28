@@ -223,10 +223,10 @@ class EvalBase:
             self.dump_results(fitness_df, suffix="fitness", data_type=data_type, csv=True)
 
     def dump_results(self, dataframe, data_type, suffix, csv=True):
-        Util.save_eval_df(dataframe, self.config, data_type, suffix, csv, finetuning=self.config.finetuning)
+        Util.save_eval_df(dataframe, self.config, data_type, suffix, csv)
 
     def __call__(self):
-        self.model = Util.load_model(self.config, self.model_config, finetuning=self.config.finetuning)
+        self.model = Util.load_model(self.config, self.model_config)
         # train set
         print("Train")
         train_dataset = Util.load_dataset(self.config, "train",)
