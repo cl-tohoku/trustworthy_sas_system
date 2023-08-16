@@ -47,18 +47,22 @@ class Loss:
             loss_first = F.mse_loss(pred_score_fixed, true_score_fixed)
 
             # calc grad term
-            transformed_annotation = 1.0 - annotation
+            #transformed_annotation = 1.0 - annotation
+            transformed_annotation = annotation
             transformed_annotation = transformed_annotation.unsqueeze(3).repeat(1, 1, 1, gradient.shape[3])
-            ideal_gradient = transformed_annotation * gradient
+            ideal_gradient = transformed_annotation * gradient.detach()
             # loss_second = F.mse_loss(gradient, ideal_gradient)
             a, b = torch.flatten(gradient), torch.flatten(ideal_gradient)
-            loss_second = 1.0 - torch.abs(F.cosine_similarity(a, b, dim=0))
+            # loss_second = 1.0 - torch.abs(F.cosine_similarity(a, b, dim=0))
+            loss_second = F.mse_loss(a, b)
 
             loss = loss_first + _lambda * loss_second
 
             grad_sample = gradient[0][0][0][0]
-            message = '\rLoss:{:.5f}, Loss_1:{:.5f}, Loss_2:{:.5f}, grad:{}'
-            print(message.format(loss, loss_first, _lambda * loss_second, grad_sample), end='')
+            #message = '\rLoss:{:.5f}, Loss_1:{:.5f}, Loss_2:{:.5f}, grad:{}'
+            #print(message.format(loss, loss_first, _lambda * loss_second, grad_sample), end='')
+            message = 'Loss:{:.5f}, Loss_1:{:.5f}, Loss_2:{:.5f}, grad:{:.5f}'
+            print(message.format(loss, loss_first, _lambda * loss_second, grad_sample))
             return loss
 
         return loss_fn

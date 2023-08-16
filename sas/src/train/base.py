@@ -79,7 +79,7 @@ class TrainBase:
 
         # choose loss function
         if self.supervising:
-            self.loss = Loss.grad_loss(max_score, _lambda=1e+0)
+            self.loss = Loss.grad_loss(max_score, _lambda=1e+6)
         else:
             self.loss = Loss.mse_loss(max_score)
 
@@ -114,32 +114,21 @@ class TrainBase:
         embedding_func = self.model.module.bert.embeddings
         embeddings = embedding_func(inputs[0])
         embeddings.retain_grad()
-        prediction_score = self.model(embeddings, inputs[1], inputs[2],
-                                      attention=False, inputs_embeds=True)
-
-        # Baselineはゼロテンソルとします。
-        baseline = torch.zeros(embeddings.size()).to(self.device)
-        # ガウス・ルジャンドルの数値積分法で用いるサンプル点と重みを計算します。
-        step_size = 32
-        x, weights = roots_legendre(step_size)
-
-        # 積分パス上のすべての点を生成します。
-        scaled_inputs = [baseline + (0.5 * (xi + 1)) * (embeddings - baseline) for xi in x]
-
-        # 勾配を計算するためにautogradの追跡を有効にします。
-        gradient_dict = defaultdict(list)
-        for scaled_input in scaled_inputs:
-            output = self.model(scaled_input, inputs[1], inputs[2], attention=False, inputs_embeds=True)
-            output = torch.sum(output, dim=1)
-            for idx in range(output.shape[0]):
-                gradient_dict[str(idx)].append(torch.autograd.grad(output[idx], scaled_input, create_graph=True)[0])
+        baseline = torch.zeros(size=embeddings.shape).to(self.device)
+        prediction_score = self.model(embeddings, inputs[1], inputs[2], attention=False, inputs_embeds=True)
 
         grad_tensor = []
-        for key in gradient_dict.keys():
-            avg_gradients = sum(w * g for w, g in zip(weights, gradient_dict[key])) / 2
-            grad_tensor.append((embeddings - baseline) * avg_gradients)
+        step_size = 512
+        saliency = IntegratedGradients(self.model, multiply_by_inputs=False)
 
-        grad_tensor = torch.stack(grad_tensor).reshape(prediction_score.shape[0], *embeddings.shape)
+        # バッチを足す
+        args = (inputs[1], inputs[2], False, True, False, True)
+        for idx in range(prediction_score.shape[1]):
+            grad = saliency.attribute(embeddings, baselines=baseline, target=idx, additional_forward_args=args,
+                                      n_steps=step_size, internal_batch_size=128)
+            grad_tensor.append(grad)
+
+        grad_tensor = torch.stack(grad_tensor).reshape(prediction_score.shape[1], *embeddings.shape)
         grad_tensor = grad_tensor.permute(1, 0, 2, 3)
         output = (prediction_score, grad_tensor)
         return output

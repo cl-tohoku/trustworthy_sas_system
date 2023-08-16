@@ -44,7 +44,8 @@ class SimpleBert(ModelBase):
         elif sent_vector:
             return output, query_tensor
         elif batch_sum:
-            return torch.sum(output, dim=1)
+            batch = torch.sum(output, dim=0).unsqueeze(0)
+            return batch
         else:
             return output
 

@@ -7,9 +7,9 @@ model_config_path: "config/ys/model/bert.yml"
 preprocessing_type: "bert"
 target_type: "analytic"
 loss: "mse"
-learning_rate: 0.00001
+learning_rate: 0.001
 batch_size: 32
-epoch: 200
+epoch: 50
 wandb: true
 wandb_entity: "ekupura"
 wandb_project_name: "0808"

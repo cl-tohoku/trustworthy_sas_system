@@ -77,7 +77,6 @@ class FeatureAttribution:
         with torch.no_grad():
             return self.model(input_emb=embedding).squeeze(0).long().to("cpu").tolist()
 
-
     def calc_gradient(self, token, target, arg, multiply=True):
         arg += (False, True)
         input_emb = self.model_embeddings()(token)
