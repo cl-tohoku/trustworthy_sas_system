@@ -1,24 +1,9 @@
-import torch
-import torch.nn.functional as F
 import sys
-import os
-import pandas as pd
-import string
-from collections import defaultdict
-from pathlib import Path
-from tqdm import tqdm
-from itertools import islice
-import numpy as np
-from transformers import BertJapaneseTokenizer
-from sklearn.metrics import recall_score, precision_score
 from pprint import pprint
 
 sys.path.append("..")
 from library.util import Util
-from library.quadratic_weighted_kappa import quadratic_weighted_kappa
-from eval.attribution import FeatureAttribution
 from eval.base import EvalBase
-from itertools import product
 from eval.clustering import Clustering2
 
 

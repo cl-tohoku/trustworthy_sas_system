@@ -205,14 +205,3 @@ class Util:
             tt_list.append(torch.cat([item_tt, pad_tt], dim=1))
         transformed = torch.stack(tt_list,).to(device)
         return transformed
-
-    @staticmethod
-    def calc_gradient_static(model, embedding_func, input_ids, token_type_ids, attention_mask, target, device="cuda"):
-        arg = (token_type_ids, attention_mask, False, True)
-        input_emb = embedding_func(input_ids)
-        baseline_emb = torch.zeros(input_emb.shape, device=device)
-
-        saliency = IntegratedGradients(model, multiply_by_inputs=True)
-        grad = saliency.attribute(input_emb, baselines=baseline_emb, target=target,
-                                  additional_forward_args=arg, n_steps=32, internal_batch_size=32)
-        return torch.sum(grad, dim=2).to(torch.float32)

@@ -7,7 +7,7 @@ model_config_path: "config/ys/model/bert.yml"
 preprocessing_type: "bert"
 target_type: "analytic"
 loss: "mse"
-learning_rate: 0.00001
+learning_rate: 0.0001
 batch_size: 32
 epoch: 200
 wandb: true

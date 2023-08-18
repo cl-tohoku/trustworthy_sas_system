@@ -18,6 +18,7 @@ sys.path.append("..")
 from library.util import Util
 from library.loss import Loss
 from library.loader import Loader
+from library.attribution import FeatureAttribution as FA
 
 
 class TrainBase:
@@ -79,7 +80,7 @@ class TrainBase:
 
         # choose loss function
         if self.supervising:
-            self.loss = Loss.grad_loss(max_score, _lambda=1e+6)
+            self.loss = Loss.grad_loss(max_score, _lambda=1e+0)
         else:
             self.loss = Loss.mse_loss(max_score)
 
@@ -111,55 +112,34 @@ class TrainBase:
 
     def calc_gradient(self, data_tuple):
         inputs, scores = data_tuple
-        embedding_func = self.model.module.bert.embeddings
-        embeddings = embedding_func(inputs[0])
-        embeddings.retain_grad()
-        baseline = torch.zeros(size=embeddings.shape).to(self.device)
-        prediction_score = self.model(embeddings, inputs[1], inputs[2], attention=False, inputs_embeds=True)
-
-        grad_tensor = []
-        step_size = 512
-        saliency = IntegratedGradients(self.model, multiply_by_inputs=False)
-
-        # バッチを足す
-        args = (inputs[1], inputs[2], False, True, False, True)
-        for idx in range(prediction_score.shape[1]):
-            grad = saliency.attribute(embeddings, baselines=baseline, target=idx, additional_forward_args=args,
-                                      n_steps=step_size, internal_batch_size=128)
-            grad_tensor.append(grad)
-
-        grad_tensor = torch.stack(grad_tensor).reshape(prediction_score.shape[1], *embeddings.shape)
-        grad_tensor = grad_tensor.permute(1, 0, 2, 3)
-        output = (prediction_score, grad_tensor)
-        return output
+        token, args = inputs[0], (inputs[1], inputs[2])
+        grad_tensor, pred_score = FA.calc_int_grad(self.model, token, None, args, return_score=True, parallel=True,
+                                                   step_size=128, training=True)
+        return grad_tensor, pred_score
 
     def predict(self, data_tuple):
         inputs, _ = data_tuple
         output = self.model(inputs[0], inputs[1], inputs[2], attention=True)
         return output
 
-    def calc_loss(self, prediction, data_tuple):
-        inputs, scores = data_tuple
-        target_score = scores[0] if self.config.target_type == "analytic" else scores[1]
-        prediction_score = prediction[0]
-
-        # choose loss function
-        if self.supervising:
-            return self.loss(prediction=prediction_score, gold=target_score,
-                             gradient=prediction[1], annotation=scores[2], term_idx=-1)
-        else:
-            return self.loss(input=prediction_score, target=target_score)
-
     def training_phase(self, train_loader):
         self.model.train()
         losses = []
         for data_tuple in tqdm(train_loader):
-            self.optimizer.zero_grad()
-            output = self.calc_gradient(data_tuple) if self.supervising else self.predict(data_tuple)
-            loss = self.calc_loss(output, data_tuple)
-            loss.backward()
-            self.optimizer.step()
-            losses.append(loss.item())
+            if self.supervising:
+                self.optimizer.zero_grad()
+                grad, pred = self.calc_gradient(data_tuple)
+                loss = self.loss(pred=pred, gold=data_tuple[1][0], gradient=grad, annotation=data_tuple[1][2])
+                loss.backward()
+                self.optimizer.step()
+                losses.append(loss.item())
+            else:
+                self.optimizer.zero_grad()
+                output = self.predict(data_tuple)
+                loss = self.loss(input=output[0], target=data_tuple[1][0])
+                loss.backward()
+                self.optimizer.step()
+                losses.append(loss.item())
 
         if self.config.wandb:
             self.log_wandb("train", np.mean(losses), commit=False)
@@ -169,9 +149,14 @@ class TrainBase:
         self.model.eval()
         losses = []
         for data_tuple in tqdm(valid_loader):
-            output = self.calc_gradient(data_tuple) if self.supervising else self.predict(data_tuple)
-            loss = self.calc_loss(output, data_tuple)
-            losses.append(loss.item())
+            if self.supervising:
+                grad, pred = self.calc_gradient(data_tuple)
+                loss = self.loss(pred=pred, gold=data_tuple[1][0], gradient=grad, annotation=data_tuple[1][2])
+                losses.append(loss.item())
+            else:
+                output = self.predict(data_tuple)
+                loss = self.loss(input=output[0], target=data_tuple[1][0])
+                losses.append(loss.item())
 
         if self.config.wandb:
             self.log_wandb("valid", np.mean(losses), commit=True)

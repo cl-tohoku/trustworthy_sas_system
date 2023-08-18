@@ -1,11 +1,9 @@
 import torch
 import torch.nn.functional as F
 import sys
-import os
 import pandas as pd
 import string
 from collections import defaultdict
-from pathlib import Path
 from tqdm import tqdm
 from itertools import islice
 import numpy as np
@@ -16,7 +14,7 @@ from pprint import pprint
 sys.path.append("..")
 from library.util import Util
 from library.quadratic_weighted_kappa import quadratic_weighted_kappa
-from eval.attribution import FeatureAttribution
+from library.attribution import FeatureAttribution
 
 
 class EvalBase:
@@ -161,7 +159,7 @@ class EvalBase:
     def eval_attributions(self, dataset):
         results = defaultdict(list)
         fitness = defaultdict(list)
-        attr = FeatureAttribution(self.config, self.model)
+        attr = FeatureAttribution()
         for idx, script in enumerate(islice(tqdm(dataset.iterrows()), self.train_size)):
             script = pd.DataFrame(script[1]).T
             input_ids, args, gold_label, annotation_matrix = self.script_extractor(script)
@@ -189,9 +187,9 @@ class EvalBase:
                 results["Token"].append(self.id_to_string_list(input_np))
 
                 # for xai
-                attribution, int_grad, emb, baseline_value = attr.calc_gradient(input_ids, target, args, multiply=True)
+                step_size = self.config.step_size
+                attribution = attr.calc_int_grad(self.model, input_ids, target, args, step_size=step_size)
                 results["Attribution"].append(attribution)
-                results["Integrated_Gradients"].append(int_grad)
 
                 # xai eval (fitness)
                 int_score = self.int_grad_metric(attribution, annotation_matrix[target])
