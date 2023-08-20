@@ -29,7 +29,7 @@ class FeatureAttribution:
             param.grad = None
 
     @staticmethod
-    def calc_vanilla_grad(model, token, target, args, multiply=True, return_score=False, parallel=False,
+    def calc_vanilla_grad(model, token, args, target_idx=None, multiply=True, return_score=False, parallel=False,
                           step_size=None, training=False):
         # 予測
         input_emb = FeatureAttribution.embedding_func(model, token, parallel)
@@ -38,16 +38,17 @@ class FeatureAttribution:
 
         # バッチ方向に足す(計算効率向上のため)
         batch_score = torch.sum(score, dim=0)
+        idx_list = range(batch_score.shape[0]) if target_idx is None else [target_idx]
 
         # 項目ごとに入力に対する勾配を求める
         grad_list = []
-        for idx in range(batch_score.shape[0]):
+        for idx in idx_list:
             grad, = torch.autograd.grad(batch_score[idx], input_emb, retain_graph=True, create_graph=True)
             grad_list.append(grad)
             # 勾配情報はリセット
             FeatureAttribution.reset_gradient(model)
 
-        grad_tensor = torch.stack(grad_list).reshape(batch_score.shape[0], *input_emb.shape)
+        grad_tensor = torch.stack(grad_list).reshape(len(idx_list), *input_emb.shape)
         grad_tensor = grad_tensor.permute(1, 0, 2, 3)
 
         if return_score:
@@ -56,7 +57,7 @@ class FeatureAttribution:
             return grad_tensor
 
     @staticmethod
-    def calc_int_grad(model, token, target, args, multiply=True, step_size=8,
+    def calc_int_grad(model, token, args, target_idx=None, multiply=True, step_size=8,
                       return_score=False, parallel=False, training=False):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         # 下準備
@@ -67,13 +68,14 @@ class FeatureAttribution:
         input_emb.retain_grad()
         baseline_emb = torch.zeros(input_emb.shape, device=device)
         score = model(input_emb, args[0], args[1], inputs_embeds=True)
+        idx_list = range(score.shape[1]) if target_idx is None else [target_idx]
 
         grad_list = [torch.zeros(input_emb.shape, device=device) for _ in range(score.shape[1])]
         for step_width, alpha in zip(step_size_list, alpha_list):
             alpha_emb = baseline_emb + alpha * input_emb
             alpha_score = model(alpha_emb, args[0], args[1], inputs_embeds=True)
             alpha_score = torch.sum(alpha_score, dim=0)
-            for idx in range(score.shape[1]):
+            for idx in idx_list:
                 alpha_grad, = torch.autograd.grad(alpha_score[idx], alpha_emb, retain_graph=True, create_graph=training)
                 alpha_grad = alpha_grad.contiguous()
                 grad_list[idx] += alpha_grad * step_width
@@ -81,7 +83,7 @@ class FeatureAttribution:
                 FeatureAttribution.reset_gradient(model)
 
         integrated_list = []
-        for idx in range(score.shape[1]):
+        for idx in idx_list:
             integrated = grad_list[idx]
             if multiply:
                 integrated *= input_emb
@@ -95,9 +97,9 @@ class FeatureAttribution:
         else:
             return integrated_tensor
 
-
-    def to_vanilla(self, tensor: torch.Tensor):
-        vanilla = tensor.squeeze(0).cpu().tolist()
+    def compress(self, tensor: torch.Tensor):
+        vanilla = tensor.squeeze(0).squeeze(0).cpu()
+        vanilla = torch.sum(vanilla, dim=1).tolist()
         return vanilla
 
 

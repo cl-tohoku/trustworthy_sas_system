@@ -187,9 +187,15 @@ class EvalBase:
                 results["Token"].append(self.id_to_string_list(input_np))
 
                 # for xai
-                step_size = self.config.step_size
-                attribution = attr.calc_int_grad(self.model, input_ids, target, args, step_size=step_size)
+                # step_size = self.config.step_size
+                step_size = 32
+                vanilla = attr.calc_vanilla_grad(self.model, input_ids, args, target_idx=target, step_size=step_size)
+                vanilla = attr.compress(vanilla)
+                results["Attribution"].append(vanilla)
+                attribution = attr.calc_int_grad(self.model, input_ids, args, target_idx=target, step_size=step_size)
+                attribution = attr.compress(attribution)
                 results["Attribution"].append(attribution)
+                # print(pred_label[target], np.sum(np.array(attribution)))
 
                 # xai eval (fitness)
                 int_score = self.int_grad_metric(attribution, annotation_matrix[target])

@@ -113,8 +113,8 @@ class TrainBase:
     def calc_gradient(self, data_tuple):
         inputs, scores = data_tuple
         token, args = inputs[0], (inputs[1], inputs[2])
-        grad_tensor, pred_score = FA.calc_int_grad(self.model, token, None, args, return_score=True, parallel=True,
-                                                   step_size=128, training=True)
+        grad_tensor, pred_score = FA.calc_int_grad(self.model, token, args, return_score=True, parallel=True,
+                                                   step_size=32, training=True)
         return grad_tensor, pred_score
 
     def predict(self, data_tuple):
