@@ -113,9 +113,13 @@ class TrainBase:
     def calc_gradient(self, data_tuple):
         inputs, scores = data_tuple
         token, args = inputs[0], (inputs[1], inputs[2])
-        grad_tensor, pred_score = FA.calc_int_grad(self.model, token, args, return_score=True, parallel=True,
-                                                   step_size=16, training=True)
-        return grad_tensor, pred_score
+
+        for grad, pred, batch, term in FA.calc_int_grad(self.model, token, args, return_score=True, parallel=True,
+                                                        step_size=128, training=True):
+            loss = self.loss(pred=pred, gold=data_tuple[1][0], gradient=grad, annotation=data_tuple[1][2],
+                             batch_idx=batch, term_idx=term)
+            yield loss
+
 
     def predict(self, data_tuple):
         inputs, _ = data_tuple
@@ -127,12 +131,11 @@ class TrainBase:
         losses = []
         for data_tuple in tqdm(train_loader):
             if self.supervising:
-                self.optimizer.zero_grad()
-                grad, pred = self.calc_gradient(data_tuple)
-                loss = self.loss(pred=pred, gold=data_tuple[1][0], gradient=grad, annotation=data_tuple[1][2])
-                loss.backward()
-                self.optimizer.step()
-                losses.append(loss.item())
+                for loss in self.calc_gradient(data_tuple):
+                    self.optimizer.zero_grad()
+                    loss.backward()
+                    self.optimizer.step()
+                    losses.append(loss.item())
             else:
                 self.optimizer.zero_grad()
                 output = self.predict(data_tuple)
@@ -150,9 +153,8 @@ class TrainBase:
         losses = []
         for data_tuple in tqdm(valid_loader):
             if self.supervising:
-                grad, pred = self.calc_gradient(data_tuple)
-                loss = self.loss(pred=pred, gold=data_tuple[1][0], gradient=grad, annotation=data_tuple[1][2])
-                losses.append(loss.item())
+                for loss in self.calc_gradient(data_tuple):
+                    losses.append(loss.item())
             else:
                 output = self.predict(data_tuple)
                 loss = self.loss(input=output[0], target=data_tuple[1][0])

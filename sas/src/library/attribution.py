@@ -58,61 +58,74 @@ class FeatureAttribution:
 
     @staticmethod
     def calc_int_grad(model, token, args, target_idx=None, multiply=True, step_size=8,
-                      return_score=False, parallel=False, training=False):
+                      return_score=False, parallel=False, training=False, internal_size=64):
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        # 下準備
+
+        # 下準備（積分の区間の定義）、ガウス・ルシャンドルで数値積分する
         step_size_list = list(0.5 * np.polynomial.legendre.leggauss(step_size)[1])
         alpha_list = list(0.5 * (1 + np.polynomial.legendre.leggauss(step_size)[0]))
-        # forward
+
+        # forward をやっておく
         input_emb = FeatureAttribution.embedding_func(model, token, parallel)
         input_emb.retain_grad()
-        baseline_emb = torch.zeros(input_emb.shape, device=device)
         score = model(input_emb, args[0], args[1], inputs_embeds=True)
+
+        # 全ての項目か一つの項目か
         idx_list = range(score.shape[1]) if target_idx is None else [target_idx]
 
-        grad_list = [torch.zeros(input_emb.shape, device=device) for _ in range(score.shape[1])]
-        for step_width, alpha in zip(step_size_list, alpha_list):
-            alpha_emb = baseline_emb + alpha * input_emb
-            alpha_score = model(alpha_emb, args[0], args[1], inputs_embeds=True)
-            alpha_score = torch.sum(alpha_score, dim=0)
+        grad_list = []
+        for term_idx in idx_list:
+            batch_list = []
+            # バッチ入力を考慮する
+            for batch_idx in range(input_emb.shape[0]):
+                # ベースラインを定義
+                data_emb = input_emb[batch_idx]
+                baseline_emb = torch.zeros(data_emb.shape, device=device)
+                grad = torch.zeros(data_emb.shape, device=device)
+                # 一つの項目、一つのデータに対して内部バッチで効率化する
+                for slice_idx in tqdm(range(0, step_size, internal_size)):
+                    sliced_alpha = alpha_list[slice_idx:slice_idx + internal_size]
+                    alpha_emb_list = [baseline_emb + alpha * data_emb for alpha in sliced_alpha]
+                    alpha_emb_tensor = torch.stack(alpha_emb_list)
+                    alpha_type = args[0][batch_idx].unsqueeze(0).repeat(internal_size, 1)
+                    alpha_mask = args[1][batch_idx].unsqueeze(0).repeat(internal_size, 1)
+                    alpha_score = model(alpha_emb_tensor, alpha_type, alpha_mask, inputs_embeds=True)
+                    alpha_score = torch.sum(alpha_score, dim=0)[term_idx]
+                    alpha_grad, = torch.autograd.grad(alpha_score, alpha_emb_tensor, retain_graph=True,
+                                                      create_graph=training)
+                    step_tensor = torch.tensor(step_size_list[slice_idx:slice_idx + internal_size], device=device).view(-1, 1, 1)
+                    internal_grad = torch.sum(step_tensor * alpha_grad, dim=0)
+
+                    # 損失を求める場合は逐次的に返す
+                    if training:
+                        yield internal_grad, score, batch_idx, term_idx
+                    else:
+                        grad += torch.sum(step_tensor * alpha_grad, dim=0)
+
+                    FeatureAttribution.reset_gradient(model)
+                batch_list.append(grad)
+            grad_list.append(torch.stack(batch_list))
+
+        if training:
+            # 入力を乗算するか
+            integrated_list = []
             for idx in idx_list:
-                alpha_grad, = torch.autograd.grad(alpha_score[idx], alpha_emb, retain_graph=True, create_graph=training)
-                alpha_grad = alpha_grad.contiguous()
-                grad_list[idx] += alpha_grad * step_width
-                # 勾配情報はリセット
-                FeatureAttribution.reset_gradient(model)
+                integrated = grad_list[idx]
+                if multiply:
+                    integrated *= input_emb
+                integrated_list.append(integrated)
 
-        integrated_list = []
-        for idx in idx_list:
-            integrated = grad_list[idx]
-            if multiply:
-                integrated *= input_emb
-            integrated_list.append(integrated)
+            # バッチを先頭にする
+            integrated_tensor = torch.stack(integrated_list)
+            integrated_tensor = integrated_tensor.permute(1, 0, 2, 3)
 
-        integrated_tensor = torch.stack(integrated_list)
-        integrated_tensor = integrated_tensor.permute(1, 0, 2, 3)
-
-        if return_score:
-            return integrated_tensor, score
-        else:
-            return integrated_tensor
+            if return_score:
+                return integrated_tensor, score
+            else:
+                return integrated_tensor
 
     def compress(self, tensor: torch.Tensor):
         vanilla = tensor.squeeze(0).squeeze(0).cpu()
         vanilla = torch.sum(vanilla, dim=1).tolist()
         return vanilla
 
-
-"""
-model.eval()
-arg += (False, True)
-input_emb = model.bert.embeddings(token)
-baseline_emb = torch.zeros(input_emb.shape, device=self.device)
-
-saliency = IntegratedGradients(model, multiply_by_inputs=True)
-grad = saliency.attribute(input_emb, baselines=baseline_emb, target=target, additional_forward_args=arg,
-                          n_steps=step_size, internal_batch_size=128)
-
-attribution = self.to_vanilla(torch.sum(grad, dim=2))
-return attribution
-"""

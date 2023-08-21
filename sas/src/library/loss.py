@@ -40,15 +40,15 @@ class Loss:
         device = "cuda" if torch.cuda.is_available() else "cpu"
         prompt_score = torch.tensor(prompt_score).to(device)
 
-        def loss_fn(pred, gold, gradient, annotation, term_idx=None):
+        def loss_fn(pred, gold, gradient, annotation, term_idx=None, batch_idx=None):
             # ordinal mse loss
             pred_score_fixed = pred / prompt_score
             true_score_fixed = gold / prompt_score
             loss_first = F.mse_loss(pred_score_fixed, true_score_fixed)
 
             # calc grad term
-            transformed_annotation = annotation
-            transformed_annotation = transformed_annotation.unsqueeze(3).repeat(1, 1, 1, gradient.shape[3])
+            transformed_annotation = annotation[batch_idx][term_idx]
+            transformed_annotation = transformed_annotation.unsqueeze(1).repeat(1, gradient.shape[1])
             ideal_gradient = (transformed_annotation * gradient).detach()
 
             a, b = torch.flatten(gradient), torch.flatten(ideal_gradient)
