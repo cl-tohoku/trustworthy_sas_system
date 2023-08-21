@@ -34,7 +34,7 @@ class FeatureAttribution:
         # 予測
         input_emb = FeatureAttribution.embedding_func(model, token, parallel)
         input_emb.retain_grad()
-        score = model(input_emb, args[0], args[1], inputs_embeds=True)
+        score = model(input_ids=input_emb, token_type_ids=args[0], attention_mask=args[1], inputs_embeds=True)
 
         # バッチ方向に足す(計算効率向上のため)
         batch_score = torch.sum(score, dim=0)

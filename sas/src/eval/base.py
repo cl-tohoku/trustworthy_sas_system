@@ -188,10 +188,10 @@ class EvalBase:
 
                 # for xai
                 # step_size = self.config.step_size
-                step_size = 32
+                step_size = 16
                 vanilla = attr.calc_vanilla_grad(self.model, input_ids, args, target_idx=target, step_size=step_size)
                 vanilla = attr.compress(vanilla)
-                results["Attribution"].append(vanilla)
+                results["Vanilla"].append(vanilla)
                 attribution = attr.calc_int_grad(self.model, input_ids, args, target_idx=target, step_size=step_size)
                 attribution = attr.compress(attribution)
                 results["Attribution"].append(attribution)
@@ -206,8 +206,9 @@ class EvalBase:
                 fitness["Recall_Score"].append(recall)
                 fitness["Precision_Score"].append(precision)
                 print('\rR:{:.5f}, P:{:.5f}'.format(recall, precision), end='')
-
-        return pd.DataFrame(results), pd.DataFrame(fitness)
+        fitness_df = (pd.DataFrame(fitness))
+        results_df = (pd.DataFrame(results))
+        return results_df, fitness_df
 
     def eval(self, dataset, data_type):
         self.model.eval()
