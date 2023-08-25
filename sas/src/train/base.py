@@ -114,8 +114,7 @@ class TrainBase:
         inputs, scores = data_tuple
         token, args = inputs[0], (inputs[1], inputs[2])
 
-        for grad, pred, batch, term in FA.calc_int_grad(self.model, token, args, return_score=True, parallel=True,
-                                                        step_size=128, training=True):
+        for grad, pred, batch, term in FA.calc_int_grad_for_training(self.model, token, args, parallel=True, step_size=128):
             loss = self.loss(pred=pred, gold=data_tuple[1][0], gradient=grad, annotation=data_tuple[1][2],
                              batch_idx=batch, term_idx=term)
             yield loss

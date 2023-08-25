@@ -12,7 +12,6 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.cluster import SpectralClustering, KMeans
 from collections import defaultdict
 import seaborn as sns
-import Levenshtein
 from sklearn.metrics.cluster import adjusted_rand_score
 from scipy.special import kl_div, rel_entr
 from sklearn.metrics import  recall_score

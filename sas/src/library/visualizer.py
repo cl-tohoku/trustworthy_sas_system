@@ -15,7 +15,7 @@ from library.util import Util
 from library.quadratic_weighted_kappa import quadratic_weighted_kappa
 
 import matplotlib.font_manager
-matplotlib.font_manager.fontManager.addfont("/ipaexg.ttf")
+matplotlib.font_manager.fontManager.addfont("./ipaexg.ttf")
 # print([f.name for f in matplotlib.font_manager.fontManager.ttflist])
 sns.set_theme(style="whitegrid", font="IPAexGothic")
 marker_list = ["o", "v", "s", "p", "P", "*", "D", "d", "h", "H"]
