@@ -119,7 +119,6 @@ class TrainBase:
                              batch_idx=batch, term_idx=term)
             yield loss
 
-
     def predict(self, data_tuple):
         inputs, _ = data_tuple
         output = self.model(inputs[0], inputs[1], inputs[2], attention=True)

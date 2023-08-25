@@ -16,6 +16,8 @@ from sklearn.metrics.cluster import adjusted_rand_score
 from scipy.special import kl_div, rel_entr
 from sklearn.metrics import  recall_score
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
+from sklearn.metrics import pairwise_distances
+
 
 sys.path.append("..")
 from library.util import Util
@@ -150,6 +152,49 @@ class Clustering2:
         print("Train set")
         train_df = self.load_attribution_results(data_type="train")
         self.clustering(train_df, data_type="train")
+
         print("Test set")
         test_df = self.load_attribution_results(data_type="test")
         self.clustering(test_df, data_type="test")
+
+
+class ForClustering:
+    def __init__(self, config_path):
+        self.config = config_path
+        self.prompt_config = Util.load_prompt(self.config)
+        self.attribution_name = "Attribution"
+
+    def load_attribution_results(self, data_type="train"):
+        suffix = "attributions"
+        df = Util.load_eval_df(self.config, data_type, suffix)
+        return df
+
+    def transform_attribution(self, df):
+        return Selector.counter(df[self.attribution_name].to_list(), df["Token"].to_list())
+
+    def process(self, df, data_type):
+        data_points = self.transform_attribution(df)
+        # calculate cosine similarity for each data points
+        distances = pairwise_distances(data_points, metric='cosine')
+
+        colormap = Visualizer.attribution_to_color(df[self.attribution_name])
+        # to data dict
+        data_dict = dict()
+        data_dict["Distance"], data_dict["Color"] = distances.tolist(), colormap
+        data_dict["Token"], data_dict["Annotation"] = df["Token"].to_list(), df["Annotation"].to_list()
+        data_dict["Pred"], data_dict["Gold"] = df["Pred"].to_list(), df["Gold"].to_list()
+        data_dict["Sample_ID"], data_dict["Term"] = df["Sample_ID"].to_list(), df["Term"].to_list()
+        # to dataframe
+        df = pd.DataFrame(data_dict)
+        output_dir = Path(self.config.cluster_dir) / data_type / self.config.script_name
+        os.makedirs(output_dir, exist_ok=True)
+        df.to_pickle(output_dir / "cluster_df.gzip.pkl", compression="gzip")
+
+    def make_clustering_datasets(self):
+        print("Train set")
+        train_df = self.load_attribution_results(data_type="train")
+        self.process(train_df, data_type="train")
+
+        print("Test set")
+        test_df = self.load_attribution_results(data_type="test")
+        self.process(test_df, data_type="test")

@@ -9,7 +9,7 @@ target_type: "analytic"
 loss: "mse"
 learning_rate: 0.00001
 batch_size: 4
-epoch: 3
+epoch: 30
 wandb: true
 wandb_entity: "ekupura"
 wandb_project_name: "0808"

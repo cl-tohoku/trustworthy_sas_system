@@ -15,7 +15,7 @@ from train.masking import TrainMasking
 from eval.base import EvalBase
 from eval.lazy import Integration, CheckMasking
 from eval.base import EvalStatic
-from eval.clustering import Clustering2
+from eval.clustering import Clustering2, ForClustering
 from eval.finetuning import EvalFinetuning
 from eval.masking import EvalMasking, ClusteringMasking
 
@@ -66,7 +66,8 @@ class Main:
     def clustering(self, eval_config_path, **kwargs):
         eval_config = Util.load_eval_config(eval_config_path)
         eval_config.update(kwargs)
-        Clustering2(eval_config).make_clustering_results()
+        # Clustering2(eval_config).make_clustering_results()
+        ForClustering(eval_config).make_clustering_datasets()
 
     def integrate_performance(self, prompt_name, eval_dir_path):
         Integration()(prompt_name, eval_dir_path)

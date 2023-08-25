@@ -66,6 +66,7 @@ class Selector:
             temporary_list.append(np.mean(attr * emb, axis=0))
         return np.array(temporary_list)
 
+    # カウントベクトルの重み付け
     @staticmethod
     def counter(attr_obj, token_obj):
         dict_list = []
@@ -89,6 +90,4 @@ class Selector:
             temporary_list.append(vector / np.linalg.norm(vector))
 
         result_tensor = np.array(temporary_list)
-        test = np.max(result_tensor)
-        # test_tensor = np.sum(result_tensor, axis=1)
         return result_tensor

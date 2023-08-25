@@ -54,12 +54,16 @@ class Loss:
             a, b = torch.flatten(gradient), torch.flatten(ideal_gradient)
             loss_second = 1.0 - torch.abs(F.cosine_similarity(a, b, dim=0))
 
-            loss = loss_first + _lambda * loss_second
-            # loss = _lambda * loss_second
+            # 勾配が0のときは学習しない
+            if torch.sum(ideal_gradient) != 0.00:
+                loss = loss_first + _lambda * loss_second
+                message = 'Loss:{:.4f}, Loss_1:{:.4f}, Loss_2:{:.8f}'
+                print(message.format(loss, loss_first, _lambda * loss_second))
+            else:
+                loss = loss_first
+                message = 'Loss:{:.4f}, Loss_1:{:.4f}'
+                print(message.format(loss, loss_first))
 
-            grad_sample = torch.sum(gradient)
-            message = 'Loss:{:.4f}, Loss_1:{:.4f}, Loss_2:{:.8f}, grad:{:.15f}'
-            print(message.format(loss, loss_first, _lambda * loss_second, grad_sample))
             return loss
 
         return loss_fn
