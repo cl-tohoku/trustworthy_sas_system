@@ -173,17 +173,22 @@ class ForClustering:
         return Selector.counter(df[self.attribution_name].to_list(), df["Token"].to_list())
 
     def process(self, df, data_type):
-        data_points = self.transform_attribution(df)
         # calculate cosine similarity for each data points
+        data_points = self.transform_attribution(df)
         distances = pairwise_distances(data_points, metric='cosine')
 
+        # generate color map
         colormap = Visualizer.attribution_to_color(df[self.attribution_name])
+        masked_colormap = Visualizer.attribution_to_color(df[self.attribution_name], df["Annotation"])
+
         # to data dict
         data_dict = dict()
         data_dict["Distance"], data_dict["Color"] = distances.tolist(), colormap
+        data_dict["Masked_Color"] = masked_colormap
         data_dict["Token"], data_dict["Annotation"] = df["Token"].to_list(), df["Annotation"].to_list()
         data_dict["Pred"], data_dict["Gold"] = df["Pred"].to_list(), df["Gold"].to_list()
         data_dict["Sample_ID"], data_dict["Term"] = df["Sample_ID"].to_list(), df["Term"].to_list()
+
         # to dataframe
         df = pd.DataFrame(data_dict)
         output_dir = Path(self.config.cluster_dir) / data_type / self.config.script_name
