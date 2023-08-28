@@ -74,7 +74,7 @@ async def root():
     return {"message": "Hello World"}
 
 @app.post("/dbscan")
-async def dbscan(item: DbscanItem)
+async def dbscan(item: DbscanItem):
     state.load_data(script_name=item.script_name, data_type=item.data_type)
     state.do_dbscan(eps=item.eps, min_samples=item.min_samples)
     return state.generate_response()

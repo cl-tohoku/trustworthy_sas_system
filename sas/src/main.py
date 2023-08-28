@@ -66,7 +66,7 @@ class Main:
     def clustering(self, eval_config_path, **kwargs):
         eval_config = Util.load_eval_config(eval_config_path)
         eval_config.update(kwargs)
-        # Clustering2(eval_config).make_clustering_results()
+        Clustering2(eval_config).make_clustering_results()
         ForClustering(eval_config).make_clustering_datasets()
 
     def integrate_performance(self, prompt_name, eval_dir_path):

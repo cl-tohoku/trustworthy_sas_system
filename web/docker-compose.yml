@@ -9,7 +9,7 @@ services:
     volumes:
       - ./volume/server:/mnt/web/server
     tty: true
-    command: ["uvicorn", "dbscan:app", "--reload", "--host", "0.0.0.0", "--port", "5000"]
+    command: ["uvicorn", "server:app", "--reload", "--host", "0.0.0.0", "--port", "5000"]
 
   node:
     build: ./node

@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from pprint import pprint
 
-init_setting = "Y14_1213_standard_A_R"
+init_setting = "Y15_2315_standard_A_R"
 init_size = 10
 init_type = "train"
 

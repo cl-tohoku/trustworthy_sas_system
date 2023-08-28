@@ -6,3 +6,4 @@ tqdm
 numpy
 scipy
 pandas
+scikit-learn
