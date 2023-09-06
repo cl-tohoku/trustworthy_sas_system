@@ -3,12 +3,9 @@ import HeatmapLine from "./HeatmapLine";
 
 export function Heatmap(props) {
   const [slice, setSlice] = useState(true);
-
   const changeValue = () => {
     setSlice(!slice)
   }
-
-
   const Render = () => {
     const heatmap = () => {
       return props.result.cluster.map((c, idx) => {

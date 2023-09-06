@@ -3,11 +3,11 @@ import React, { useState, useEffect } from 'react';
 function Scatter(props) {
     return (
         <div>
-            {imageData && (
+            {props.imagePath && (
                 <img
-                    src="./data/tmp/scatter.png"
+                    src={props.imagePath}
                     alt="Example Image"
-                    className="w-auto h-auto"
+                    className="h-80 w-auto"
                 />
             )}
         </div>

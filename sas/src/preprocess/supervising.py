@@ -26,7 +26,7 @@ class PreprocessSupervising:
         test_df = Util.load_dataset_static(self.config.preprocess_name, size, "bert", "test", self.config.dataset_dir)
 
         # masking
-        # supervising_conf = Util.load_supervising_config(self.config.supervising_path)
+        supervising_conf = Util.load_supervising_config(self.config.supervising_path)
 
         supervising_mode = "supervising-{}".format(mode)
         self.to_pickle(train_df, "train", supervising_mode)

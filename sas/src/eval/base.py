@@ -142,7 +142,6 @@ class EvalBase:
         annotated_idx = np.reshape(np.argwhere(anot == 1), (-1))
         real_output = np.sum(np.array(attribution)[annotated_idx])
         all_output = np.sum(np.array(attribution))
-        # grad_score = real_output / ideal_output
         grad_score = real_output / all_output
         return grad_score
 

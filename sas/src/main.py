@@ -28,11 +28,12 @@ class Main:
         config = Util.load_preprocess_config(config_path)
         config.update(kwargs)
         PreprocessBase(config)()
-        PreprocessSupervising(config)()
         if config.contamination_path:
             PreprocessContamination(config)()
         if config.masking_path:
             PreprocessMasking(config)()
+        if config.supervising_path:
+            PreprocessSupervising(config)()
 
     def train(self, train_config_path, **kwargs):
         # load configuration files
@@ -66,7 +67,7 @@ class Main:
     def clustering(self, eval_config_path, **kwargs):
         eval_config = Util.load_eval_config(eval_config_path)
         eval_config.update(kwargs)
-        Clustering2(eval_config).make_clustering_results()
+        #Clustering2(eval_config).make_clustering_results()
         ForClustering(eval_config).make_clustering_datasets()
 
     def integrate_performance(self, prompt_name, eval_dir_path):

@@ -1,23 +1,18 @@
 import pickle
 import sys
 import os
-import torch
-from glob import glob
 import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
 import numpy as np
-import random
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.cluster import SpectralClustering, KMeans
-from collections import defaultdict
-import seaborn as sns
-from sklearn.metrics.cluster import adjusted_rand_score
-from scipy.special import kl_div, rel_entr
-from sklearn.metrics import  recall_score
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 from sklearn.metrics import pairwise_distances
-
+import hdbscan
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.cluster import SpectralClustering
+import itertools
 
 sys.path.append("..")
 from library.util import Util
@@ -172,28 +167,100 @@ class ForClustering:
     def transform_attribution(self, df):
         return Selector.counter(df[self.attribution_name].to_list(), df["Token"].to_list())
 
-    def process(self, df, data_type):
-        # calculate cosine similarity for each data points
-        data_points = self.transform_attribution(df)
-        distances = pairwise_distances(data_points, metric='cosine')
+    def hdbscan(self, cosine_distance):
+        cluster_clf = hdbscan.HDBSCAN(min_cluster_size=3)
+        labels = cluster_clf.fit_predict(cosine_distance)
+        return labels.tolist()
 
+    def spectrum(self, data_points, cluster_k):
+        clustering = SpectralClustering(n_clusters=cluster_k, affinity="rbf", random_state=42, n_jobs=-1)
+        cluster_labels = clustering.fit_predict(data_points)
+
+        # イナーシャの計算 (コサイン類似度なので、1からの差を考慮)
+        inertia = sum(np.min(1 - cosine_similarity(data_points, np.array([np.mean(data_points[cluster_labels == i], axis=0) for i in range(cluster_k)])), axis=1))
+
+        return cluster_labels.tolist(), inertia
+
+    def plot_scatter(self, data_points, labels, output_path):
+        # do tsne
+        cosine_distances = data_points
+        tsne = TSNE(n_components=2, random_state=0)
+        tsne_results = tsne.fit_transform(cosine_distances)        
+
+        # plot figure        
+        plt.figure(figsize=(7, 4))
+        for cluster in np.unique(labels):
+            plt.scatter(tsne_results[labels == cluster, 0], tsne_results[labels == cluster, 1],
+                        label=f"Cluster {cluster}", alpha=0.5)
+        plt.legend()
+        plt.title("Clustering with T-SNE visualization")
+        plt.xlabel("Dimension 1")
+        plt.ylabel("Dimension 2")
+        plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+        plt.tight_layout()
+        plt.savefig(output_path)
+
+    def plot_inertia(self, cluster_k_list, inertia_list, output_path):
+        plt.figure(figsize=(7, 4))
+        plt.plot(cluster_k_list, inertia_list, 'bo-')
+        plt.xlabel('Number of clusters')
+        plt.ylabel('Inertia')
+        plt.title('The Elbow Method')
+        plt.tight_layout()
+        plt.savefig(output_path)
+
+    def process(self, df, data_type):
         # generate color map
         colormap = Visualizer.attribution_to_color(df[self.attribution_name])
         masked_colormap = Visualizer.attribution_to_color(df[self.attribution_name], df["Annotation"])
 
-        # to data dict
+        # make data df
         data_dict = dict()
-        data_dict["Distance"], data_dict["Color"] = distances.tolist(), colormap
+        data_dict["Sample_ID"], data_dict["Term"] = df["Sample_ID"].to_list(), df["Term"].to_list()
+        data_dict["Color"] = colormap
         data_dict["Masked_Color"] = masked_colormap
         data_dict["Token"], data_dict["Annotation"] = df["Token"].to_list(), df["Annotation"].to_list()
         data_dict["Pred"], data_dict["Gold"] = df["Pred"].to_list(), df["Gold"].to_list()
-        data_dict["Sample_ID"], data_dict["Term"] = df["Sample_ID"].to_list(), df["Term"].to_list()
 
-        # to dataframe
-        df = pd.DataFrame(data_dict)
+        # output data df
+        data_df = pd.DataFrame(data_dict)
         output_dir = Path(self.config.cluster_dir) / data_type / self.config.script_name
         os.makedirs(output_dir, exist_ok=True)
-        df.to_pickle(output_dir / "cluster_df.gzip.pkl", compression="gzip")
+        data_df.to_pickle(output_dir / "data_df.gzip.pkl", compression="gzip")
+
+        # clustering setting
+        cluster_k_list = list(range(3, 21))
+        term_list = df["Term"].unique().tolist()
+
+        for term in tqdm(term_list):
+            sliced_df = df[df["Term"] == term]
+            score_list = sliced_df["Pred"].unique().tolist()
+            for score in score_list:
+                sliced_2_df = df[df["Pred"] == score]
+                data_points = self.transform_attribution(sliced_2_df)
+                inertia_list = []
+                if len(sliced_2_df) < 21:
+                    continue
+                for cluster_k in cluster_k_list:
+                    # calculate cosine similarity for each data points
+                    # clustering
+                    labels, inertia = self.spectrum(data_points=data_points, cluster_k=cluster_k)
+                    # make data df & output
+                    cluster_dict = dict()
+                    cluster_dict["Sample_ID"] = sliced_2_df["Sample_ID"].to_list()
+                    cluster_dict["Cluster"] = labels
+                    # output data
+                    cluster_df = pd.DataFrame(cluster_dict)
+                    file_name = "cluster_df_{}_{}_{}.gzip.pkl".format(term, score, cluster_k)
+                    cluster_df.to_pickle(output_dir / file_name, compression="gzip")
+                    # plot scatter
+                    file_name = "scatter_{}_{}_{}.png".format(term, score, cluster_k)
+                    self.plot_scatter(data_points, labels, output_dir / file_name)
+                    inertia_list.append(inertia)
+
+                # plot inertia
+                file_name = "inertia_{}_{}".format(term, score)
+                self.plot_inertia(cluster_k_list, inertia_list, output_dir / file_name)
 
     def make_clustering_datasets(self):
         print("Train set")
@@ -203,3 +270,19 @@ class ForClustering:
         print("Test set")
         test_df = self.load_attribution_results(data_type="test")
         self.process(test_df, data_type="test")
+
+
+"""
+                # do hdbscan
+                hdbscan_labels = self.hdbscan(data_points)
+                # save
+                cluster_dict = dict()
+                cluster_dict["Sample_ID"] = sliced_2_df["Sample_ID"].to_list()
+                cluster_dict["Cluster"] = hdbscan_labels
+                cluster_df = pd.DataFrame(cluster_dict)
+                file_name = "hdbscan_df_{}_{}.gzip.pkl".format(term, score)
+                cluster_df.to_pickle(output_dir / file_name, compression="gzip")
+                # plot
+                file_name = "hdbscan_scatter_{}_{}.png".format(term, score)
+                self.plot_scatter(data_points, hdbscan_labels, output_dir / file_name)
+"""
