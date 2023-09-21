@@ -20,13 +20,18 @@ export function HeatmapRender(props) {
   const Render = () => {
     const clusterArg = argWhere(props.result.cluster, x => x == props.clusterIdx);
     return clusterArg.map(idx =>
-      <HeatmapLine token={props.result.token[idx]} color={props.result.color[idx]} just={props.result.just[idx]} mask={props.mask}/>
+      <HeatmapLine token={props.result.token[idx]} color={props.result.color[idx]} just={props.result.just[idx]} mask={props.mask} />
     );
   };
 
   return (
-    <div className="col-span-1 bg-white h-auto p-1 px-2" onClick={toggleSlice}>
-      {props && (slice ? Render().slice(0, 3) : Render())}
+    <div className="flex flex-row col-span-1 bg-white h-auto p-1 px-2" onClick={toggleSlice}>
+      <div className="flex-none w-8">
+        {props.clusterIdx}
+      </div>
+      <div className="flex-auto w-auto">
+        {props && (slice ? Render().slice(0, 3) : Render())}
+      </div>
     </div>
   );
 }

@@ -43,18 +43,28 @@ export function Dbscan(props){
   };
 
   const RenderScatter = () => {
-    return <Scatter imagePath={imagePath} />;
+    return (
+      <div className="flex-none m-4 p-2 w-1/3 rounded-lg border border-gray-200 bg-white">
+        <Scatter imagePath={imagePath} />
+      </div>
+    );
   }
   
   const RenderInertia = () => {
-    return <Scatter imagePath={inertiaPath} />;
+    return (
+      <div className="flex-none m-4 p-2 w-1/3 rounded-lg border border-gray-200 bg-white">
+        <Scatter imagePath={inertiaPath} />;
+      </div>
+    );
   }
 
-  const GetDbscanResults = (e) => {
+  const GetClusteringResults = (e) => {
     const serverUrl = `/clustering/${setting}/${dataType}/${term}/${score}/${clusterSize}`;
     fetch(serverUrl)
       .then(response => response.json())
       .then(data => {setResult(data);});
+    GetImagePath();
+    GetInertiaPath();
   };
 
   const GetImagePath = () => {
@@ -75,35 +85,77 @@ export function Dbscan(props){
       });
   };
 
-  useEffect(() => {
-    return () => {
-      GetDbscanResults();
+  const SizeBox = () => {
+    const handleSizeChange = (e) => {
+      setClusterSize(e.target.value);
     };
-  }, [setting, dataType, clusterSize, mask]);
+    return (
+      <div className="flex items-center justify-center">
+        <input
+          type="number"
+          step="1"
+          placeholder="Size"
+          className="border-2 border-gray-300 p-4 rounded-md w-24 h-10"
+          value={clusterSize}
+          onChange={handleSizeChange}
+        />
+      </div>
+    );
+  };
 
-  useEffect(() => {
-    return () => {
-      GetImagePath();
-      GetInertiaPath();
+  const ScoreBox = () => {
+    const handleScoreChange = (e) => {
+      setScore(e.target.value);
     };
-  }, [result]);
+    return (
+      <div className="flex items-center justify-center">
+        <input
+          type="number"
+          step="1"
+          placeholder="Score"
+          className="border-2 border-gray-300 p-4 rounded-md w-24 h-10"
+          value={score}
+          onChange={handleScoreChange}
+        />
+      </div>
+    );
+  };
+
+  const TermBox = () => {
+    const handleTermChange = (e) => {
+      setTerm(e.target.value);
+    };
+    return (
+      <div className="flex items-center justify-center">
+        <input
+          type="text"
+          maxlength="1"
+          pattern="[A-Z]"
+          placeholder="Term"
+          className="border-2 border-gray-300 p-4 rounded-md w-24 h-10"
+          value={term}
+          onChange={handleTermChange}
+        />
+      </div>
+    );
+  };
 
   return (
     <div className="flex w-screen h-screen text-gray-700">
       <div className="flex flex-col w-full">
         <div className="flex flex-row items-center flex-shrink-0 h-16 px-8 border-b border-gray-300">
-          <div className="flex-none w-1/2">
+          <div className="flex-none w-1/3">
             <h1 className="font-medium">{setting}</h1>
           </div>
-          <div className="flex-none">
-            {loading ? <div>Loading...</div> : <div>Loaded</div>}
-          </div>
-          <div className="flex flex-row flex-none justify-end">
-            <div className="flex-none h-10 w-64 px-4 ml-2 items-center justify-center">
-              <SearchBox setting={setting} dataType={dataType} setKeyword={setKeyword} setMode={setMode} />
+          <div className="flex flex-row flex-auto w-auto justify-end">
+            <div className="flex-none items-center justify-center h-10 w-28 px-4 ml-2 text-sm font-medium bg-white">
+              {TermBox()}
             </div>
-            <div className="flex-none items-center justify-center h-10 w-48 px-4 ml-2 text-sm font-medium bg-white">
-              <ClusterRange SetClusterSize={SetClusterSize} clusterSize={clusterSize}/>
+            <div className="flex-none items-center justify-center h-10 w-28 px-4 ml-2 text-sm font-medium bg-white">
+              {ScoreBox()}
+            </div>
+            <div className="flex-none items-center justify-center h-10 w-28 px-4 ml-2 text-sm font-medium bg-white">
+              {SizeBox()}
             </div>
             <button className="flex-none h-10 w-32 px-4 ml-2 text-sm font-medium bg-gray-200 rounded hover:bg-gray-300"
               onClick={SetType}>
@@ -112,6 +164,10 @@ export function Dbscan(props){
             <button className="flex-none h-10 w-48 px-4 ml-2 text-sm font-medium bg-gray-200 rounded hover:bg-gray-300"
               onClick={SetMask}>
               Justification Cue
+            </button>
+            <button className="flex-none h-10 w-48 px-4 ml-2 text-sm rounded bg-blue-500 hover:bg-blue-700 text-white font-bold"
+              onClick={GetClusteringResults}>
+              clustering
             </button>
           </div>
         </div>
@@ -123,12 +179,8 @@ export function Dbscan(props){
           </div>
           <div className="flex flex-col w-screen overflow-auto bg-gray-200">
             <div className="flex flex-row h-96 gap-4">
-              <div className="flex-none m-4 p-2 w-1/3 rounded-lg border border-gray-200 bg-white">
-                {result && RenderScatter()}
-              </div>
-              <div className="flex-none m-4 p-2 w-1/3 rounded-lg border border-gray-200 bg-white">
-                {result && RenderInertia()}
-              </div>
+              {result && RenderScatter()}
+              {result && RenderInertia()}
             </div>
             <div className="flex flex-col flex-1 bg-gray-0">
               <div className="flex-1 p-4 pt-6">
