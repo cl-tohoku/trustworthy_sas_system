@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import HeatmapRender from './HeatmapRender';
 
 const Cluster = (props) => {
-  const createArray = (i) => Array.from({ length: i + 2 }, (_, index) => index - 1);
+  const createArray = (i) => Array.from({ length: i }, (_, index) => index);
 
   const renderCluster = () => {
     const numberArray = createArray(props.result.max);
     const clusterArray = numberArray.map(idx =>
       <div className="border-2 border-gray-200">
-        <HeatmapRender result={props.result} clusterIdx={idx} />
+        <HeatmapRender result={props.result} clusterIdx={idx} mask={props.mask}/>
       </div>
     );
     return clusterArray

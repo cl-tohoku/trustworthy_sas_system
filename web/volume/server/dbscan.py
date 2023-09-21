@@ -28,71 +28,41 @@ default_script = "Y14_2115_standard"
 
 class State:
     def __init__(self):
+        self.base_df = None
         self.df = None
-        self.cluster_label = None
         self.load_data()
-        self.get_hdbscan()
-        #self.do_dbscan()
-        #self.plot_scatter()
-        self.timestamp = ""
 
-    def load_data(self, script_name=default_script, data_type="train", load=True):
-        script_path = Path("data") / data_type / script_name / "cluster_df.gzip.pkl"
-        if load:
-            self.df = pd.read_pickle(script_path, compression="gzip")
+    def load_data(self, script_name=default_script, data_type="train"):
+        script_path = Path("data") / data_type / script_name / "data_df.gzip.pkl"
+        self.base_df = pd.read_pickle(script_path, compression="gzip")
 
-    def do_dbscan(self, eps=0.01, min_samples=5):
-        dbscan = DBSCAN(eps=eps, min_samples=min_samples, metric='precomputed')
-        cosine_distances = np.array(self.df["Distance"].to_list())
-        self.cluster_label = dbscan.fit_predict(cosine_distances).tolist()
-        self.plot_scatter()
-
-    def plot_scatter(self, script_name=default_script):
-        # do tsne
-        cosine_distances = np.array(self.df["Distance"].to_list())
-        tsne = TSNE(n_components=2, random_state=0)
-        tsne_results = tsne.fit_transform(cosine_distances)        
-
-        # plot figure        
-        labels = self.cluster_label
-        plt.figure(figsize=(7, 4))
-        for cluster in np.unique(labels):
-            plt.scatter(tsne_results[labels == cluster, 0], tsne_results[labels == cluster, 1], label=f"Cluster {cluster}")
-        plt.legend()
-        plt.title("DBSCAN Clustering with T-SNE visualization")
-        plt.xlabel("Dimension 1")
-        plt.ylabel("Dimension 2")
-        os.makedirs("./data/tmp/", exist_ok=True)
-        timestamp = str(time.time())
-        self.timestamp = timestamp
-        plt.savefig("./data/tmp/scatter_{}_{}.png".format(script_name, timestamp))
+    def join_cluster_data(self, script_name, data_type, term, score, cluster_k):
+        # load cluster results
+        file_name = "cluster_df_{}_{}_{}.gzip.pkl".format(term, score, cluster_k)
+        script_path = Path("data") / data_type / script_name / file_name
+        cluster_df = pd.read_pickle(script_path, compression="gzip")
+        # join
+        self.df = self.base_df[self.base_df["Term"] == term].merge(cluster_df, on='Sample_ID', how='inner')
     
-    def generate_response(self, timestamp):
-        cluster_size = max(self.cluster_label)
-        print(cluster_size)
+    def generate_response(self):
+        cluster_label = self.df["Cluster"].to_list()
+        cluster_size = max(cluster_label) + 1
         color = self.df["Color"].to_list()
         masked = self.df["Masked_Color"].to_list()
         token = self.df["Token"].to_list()
 
         # make response
-        responses = {"cluster": self.cluster_label, "token": token, "color": color, "just": masked, "max": cluster_size}
+        responses = {"cluster": cluster_label, "token": token, "color": color, "just": masked, "max": cluster_size}
         return responses
 
-    def get_hdbscan(self):
-        self.cluster_label = self.df["HDBSCAN"].to_list()
-
-    def get_scatter_path(self, script_name, data_type):
-        return "./data/{}/{}/scatter.png".format(data_type, script_name)
+    def get_scatter_path(self, script_name, data_type, term, score, cluster_k):
+        return "./data/{}/{}/scatter_{}_{}_{}.png".format(data_type, script_name, term, score, cluster_k)
+    
+    def get_inertia_path(self, script_name, data_type, term, score):
+        return "./data/{}/{}/inertia_{}_{}.png".format(data_type, script_name, term, score)
         
 
 state = State()
-
-class DbscanItem(BaseModel):
-    eps: float
-    min_samples: int
-    script_name: str
-    data_type: str
-
 
 @app.get("/")
 async def root():
@@ -109,30 +79,18 @@ def file():
     responses = {"file": project_list}
     return responses
 
-@app.post("/dbscan")
-def dbscan(item: DbscanItem):
-    print("Loading...")
-    state.load_data(script_name=item.script_name, data_type=item.data_type)
-    print("Clustering...")
-    state.do_dbscan(eps=item.eps, min_samples=item.min_samples)
-    print("Plotting...")
-    timestamp = state.plot_scatter(script_name=item.script_name)
-    return state.generate_response(timestamp)
+@app.get("/clustering/{script_name}/{data_type}/{term}/{score}/{cluster_k}")
+def clustering(script_name: str, data_type: str, term: str, score: int, cluster_k: int):
+    state.load_data(script_name=script_name, data_type=data_type)
+    state.join_cluster_data(script_name, data_type, term, score, cluster_k)
+    return state.generate_response()
 
-@app.get("/scatter/{script_name}")
-def scatter(script_name: str):
-    # create response
-    timestamp = state.timestamp
-    file_path = "./data/tmp/scatter_{}_{}.png".format(script_name, timestamp)
+@app.get("/scatter/{script_name}/{data_type}/{term}/{score}/{cluster_k}")
+def scatter(script_name: str, data_type: str, term: str, score: int, cluster_k: int):
+    file_path = state.get_scatter_path(script_name, data_type, term, score, cluster_k)
     return FileResponse(file_path, media_type="image/png")
 
-@app.get("/clustering/{script_name}/{data_type}/{term}/{score}")
-def hdbscan(script_name: str, data_type: str, term: int, score: int):
-    state.load_data(script_name=script_name, data_type=data_type, load=False)
-    state.get_hdbscan()
-    return state.generate_response(timestamp="")
-
-@app.get("/tnse/{script_name}/{data_type}/{term}/{score}")
-def hdbscan_scatter(script_name: str, data_type: str, term: int, score: int):
-    file_path = state.get_scatter_path(script_name, data_type)
+@app.get("/inertia/{script_name}/{data_type}/{term}/{score}")
+def inertia(script_name: str, data_type: str, term: str, score: int):
+    file_path = state.get_inertia_path(script_name, data_type, term, score)
     return FileResponse(file_path, media_type="image/png")

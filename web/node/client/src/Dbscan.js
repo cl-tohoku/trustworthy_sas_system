@@ -22,6 +22,9 @@ export function Dbscan(props){
   const [minSamples, setMinSamples] = useState(5);
   const [imagePath, setImagePath] = useState("");
   const [loading, setLoading] = useState(false)
+  const [term, setTerm] = useState("A")
+  const [score, setScore] = useState(2)
+  const [inertiaPath, setInertiaPath] = useState("");
 
   const SetClusterSize = (e) => {
     setClusterSize(e.target.value)
@@ -39,38 +42,49 @@ export function Dbscan(props){
     }
   };
 
-  const renderScatter = () => {
+  const RenderScatter = () => {
     return <Scatter imagePath={imagePath} />;
+  }
+  
+  const RenderInertia = () => {
+    return <Scatter imagePath={inertiaPath} />;
   }
 
   const GetDbscanResults = (e) => {
-    const serverUrl = `/hdbscan/${setting}/${dataType}`;
+    const serverUrl = `/clustering/${setting}/${dataType}/${term}/${score}/${clusterSize}`;
     fetch(serverUrl)
       .then(response => response.json())
       .then(data => {setResult(data);});
   };
 
   const GetImagePath = () => {
-    const imagePoint = `/hscatter/${setting}/${dataType}`
+    const imagePoint = `/scatter/${setting}/${dataType}/${term}/${score}/${clusterSize}`
     fetch(imagePoint)
       .then(response => response.blob())
       .then(parsed => {
         setImagePath(URL.createObjectURL(parsed));
       });
   };
+  
+  const GetInertiaPath = () => {
+    const inertiaPoint = `/inertia/${setting}/${dataType}/${term}/${score}`
+    fetch(inertiaPoint)
+      .then(response => response.blob())
+      .then(parsed => {
+        setInertiaPath(URL.createObjectURL(parsed));
+      });
+  };
 
   useEffect(() => {
     return () => {
-      console.log("Get clustering data")
       GetDbscanResults();
-      console.log(result);
     };
-  }, [setting, dataType, eps, minSamples]);
+  }, [setting, dataType, clusterSize, mask]);
 
   useEffect(() => {
     return () => {
-      console.log("Get image")
       GetImagePath();
+      GetInertiaPath();
     };
   }, [result]);
 
@@ -109,10 +123,11 @@ export function Dbscan(props){
           </div>
           <div className="flex flex-col w-screen overflow-auto bg-gray-200">
             <div className="flex flex-row h-96 gap-4">
-              <div className="flex-none m-4 p-2 w-1/2 rounded-lg border border-gray-200 bg-white">
-                {result && renderScatter()}
+              <div className="flex-none m-4 p-2 w-1/3 rounded-lg border border-gray-200 bg-white">
+                {result && RenderScatter()}
               </div>
-              <div className="flex flex-col flex-none m-4 p-2 w-1/3 rounded-lg border border-gray-200 bg-white">
+              <div className="flex-none m-4 p-2 w-1/3 rounded-lg border border-gray-200 bg-white">
+                {result && RenderInertia()}
               </div>
             </div>
             <div className="flex flex-col flex-1 bg-gray-0">

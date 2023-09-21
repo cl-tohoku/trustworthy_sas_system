@@ -6,7 +6,7 @@ import {Dbscan} from "./Dbscan";
 function App() {
   return (
     <div>
-      <Inbox/>
+      <Dbscan/>
     </div>
   );
 }

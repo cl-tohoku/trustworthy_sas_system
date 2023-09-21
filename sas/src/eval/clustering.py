@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.cluster import SpectralClustering
+from sklearn.cluster import AgglomerativeClustering
 import itertools
 
 sys.path.append("..")
@@ -178,7 +179,13 @@ class ForClustering:
 
         # イナーシャの計算 (コサイン類似度なので、1からの差を考慮)
         inertia = sum(np.min(1 - cosine_similarity(data_points, np.array([np.mean(data_points[cluster_labels == i], axis=0) for i in range(cluster_k)])), axis=1))
+        return cluster_labels.tolist(), inertia
 
+    def hierarchical(self, data_points, cluster_k):
+        clustering = AgglomerativeClustering(n_clusters=cluster_k, affinity='euclidean', linkage='ward')
+        clustering.fit(data_points)
+        cluster_labels = clustering.labels_
+        inertia = sum(np.min(1 - cosine_similarity(data_points, np.array([np.mean(data_points[cluster_labels == i], axis=0) for i in range(cluster_k)])), axis=1))
         return cluster_labels.tolist(), inertia
 
     def plot_scatter(self, data_points, labels, output_path):
@@ -229,14 +236,14 @@ class ForClustering:
         data_df.to_pickle(output_dir / "data_df.gzip.pkl", compression="gzip")
 
         # clustering setting
-        cluster_k_list = list(range(3, 21))
+        cluster_k_list = list(range(2, 21))
         term_list = df["Term"].unique().tolist()
 
         for term in tqdm(term_list):
             sliced_df = df[df["Term"] == term]
             score_list = sliced_df["Pred"].unique().tolist()
             for score in score_list:
-                sliced_2_df = df[df["Pred"] == score]
+                sliced_2_df = sliced_df[sliced_df["Pred"] == score]
                 data_points = self.transform_attribution(sliced_2_df)
                 inertia_list = []
                 if len(sliced_2_df) < 21:
@@ -244,7 +251,8 @@ class ForClustering:
                 for cluster_k in cluster_k_list:
                     # calculate cosine similarity for each data points
                     # clustering
-                    labels, inertia = self.spectrum(data_points=data_points, cluster_k=cluster_k)
+                    # labels, inertia = self.spectrum(data_points=data_points, cluster_k=cluster_k)
+                    labels, inertia = self.hierarchical(data_points=data_points, cluster_k=cluster_k)
                     # make data df & output
                     cluster_dict = dict()
                     cluster_dict["Sample_ID"] = sliced_2_df["Sample_ID"].to_list()
@@ -271,18 +279,3 @@ class ForClustering:
         test_df = self.load_attribution_results(data_type="test")
         self.process(test_df, data_type="test")
 
-
-"""
-                # do hdbscan
-                hdbscan_labels = self.hdbscan(data_points)
-                # save
-                cluster_dict = dict()
-                cluster_dict["Sample_ID"] = sliced_2_df["Sample_ID"].to_list()
-                cluster_dict["Cluster"] = hdbscan_labels
-                cluster_df = pd.DataFrame(cluster_dict)
-                file_name = "hdbscan_df_{}_{}.gzip.pkl".format(term, score)
-                cluster_df.to_pickle(output_dir / file_name, compression="gzip")
-                # plot
-                file_name = "hdbscan_scatter_{}_{}.png".format(term, score)
-                self.plot_scatter(data_points, hdbscan_labels, output_dir / file_name)
-"""
