@@ -96,7 +96,8 @@ class FeatureAttribution:
                     # backward
                     alpha_grad, = torch.autograd.grad(alpha_score, alpha_emb_tensor, retain_graph=True, create_graph=True)
                     step_tensor = torch.tensor(step_size_list[slice_idx:slice_idx + internal_size], device=device).view(-1, 1, 1)
-                    internal_grad = torch.sum(step_tensor * alpha_grad, dim=0)
+                    internal_grad = torch.sum(step_tensor * alpha_grad, dim=0) * data_emb
+                    FeatureAttribution.reset_gradient(model)
                     yield internal_grad, score, batch_idx, term_idx
 
     @staticmethod
@@ -136,6 +137,7 @@ class FeatureAttribution:
                     alpha_grad, = torch.autograd.grad(alpha_score, alpha_emb_tensor, retain_graph=True, create_graph=False)
                     step_tensor = torch.tensor(step_size_list[slice_idx:slice_idx + internal_size], device=device).view(-1, 1, 1)
                     internal_grad = torch.sum(step_tensor * alpha_grad, dim=0)
+                    debug_grad = torch.sum(internal_grad, dim=1)
                     grad += internal_grad
                     FeatureAttribution.reset_gradient(model)
                 batch_list.append(grad)
@@ -151,8 +153,9 @@ class FeatureAttribution:
 
         return integrated_tensor
 
-    def compress(self, tensor: torch.Tensor):
+    @staticmethod
+    def compress(tensor: torch.Tensor, summation=True):
         vanilla = tensor.squeeze(0).squeeze(0).cpu()
-        vanilla = torch.sum(vanilla, dim=1).tolist()
+        vanilla = torch.sum(vanilla, dim=1).tolist() if summation else vanilla.tolist()
         return vanilla
 

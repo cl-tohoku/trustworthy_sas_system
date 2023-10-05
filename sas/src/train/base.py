@@ -162,7 +162,7 @@ class TrainBase:
 
 
 class TrainSupervising:
-    def __init__(self, train_config, model_path):
+    def __init__(self, train_config, model_path, target_idx=0):
         self.config = train_config
         self.model_config = Util.load_model_config(train_config.model_config_path)
         self.prompt_config = Util.load_prompt(self.config)
@@ -183,6 +183,9 @@ class TrainSupervising:
             self.model_config.output_size = 1
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.target_idx = target_idx
+        self.step_size = 128
+        self.internal_size = 16
 
     def initialize(self,):
         if self.config.wandb:
@@ -218,7 +221,7 @@ class TrainSupervising:
             max_score = sum(self.prompt_config.max_scores)
 
         # set grad loss function
-        self.loss = Loss.grad_loss(max_score, _lambda=1e+0, _print=False)
+        self.loss = Loss.grad_loss(max_score, _lambda=1e+0, _print=True)
 
     def set_optimizer(self):
         self.optimizer = AdamW(self.model.parameters(), lr=self.config.learning_rate)
@@ -236,20 +239,39 @@ class TrainSupervising:
         wandb.log({"{}_loss".format(phase): loss}, commit=commit)
 
     def load_dataset(self):
-        train_dataset = Util.load_dataset(self.config, "elim", self.config.script_name, "sv")
-        return train_dataset
+        dataset = Util.load_dataset(self.config, "elim", self.config.script_name, "sv")
+
+        def transform(list_data):
+            return torch.tensor(list_data, device=self.device).unsqueeze(0)
+
+        baseline_model = Util.load_model_from_path(self.model_path, self.model_config)
+        baseline_model.cuda()
+
+        grad_list = []
+        for ii, tti, am in tqdm(zip(dataset["input_ids"], dataset["token_type_ids"], dataset["attention_mask"])):
+            ii, tti, am = transform(ii), transform(tti), transform(am)
+            grad = FA.calc_int_grad(baseline_model, ii, (tti, am), target_idx=self.target_idx, step_size=128,
+                                    internal_size=128)
+            grad = FA.compress(tensor=grad, summation=False)
+            grad_list.append(grad)
+
+        dataset["orig_gradient"] = grad_list
+        baseline_model.cpu()
+        return dataset
 
     def to_dataloader(self, dataset):
-        loader = Loader.to_sv_loader
+        loader = Loader.to_sv_dataloader
         return loader(dataset, self.config.batch_size, self.model_config.attention_hidden_size)
 
     def calc_gradient(self, data_tuple):
         inputs, scores = data_tuple
-        token, args = inputs[0], (inputs[1], inputs[2])
+        token, args, orig_grad = inputs[0], (inputs[1], inputs[2]), inputs[3]
 
-        for grad, pred, batch, term in FA.calc_int_grad_for_training(self.model, token, args, parallel=True, step_size=128):
-            loss = self.loss(pred=pred, gold=data_tuple[1][0], gradient=grad, annotation=data_tuple[1][2],
-                             batch_idx=batch, term_idx=term)
+        _iterator = FA.calc_int_grad_for_training(self.model, token, args, parallel=True, step_size=self.step_size,
+                                                  internal_size=self.internal_size, target_idx=self.target_idx)
+        for grad, pred, batch, term in _iterator:
+            loss = self.loss(pred=pred, gold=data_tuple[1][0], gradient=grad, orig_gradient=orig_grad[batch],
+                             annotation=data_tuple[1][2], batch_idx=batch, term_idx=term)
             yield loss
 
     def predict(self, data_tuple):
@@ -274,9 +296,8 @@ class TrainSupervising:
     def save_model(self):
         Util.save_model(self.model, self.config)
 
-    def train(self, train_dataset, valid_dataset):
+    def train(self, train_dataset):
         train_loader = self.to_dataloader(train_dataset)
-        valid_loader = self.to_dataloader(valid_dataset)
 
         for n in range(self.config.epoch):
             epoch = n + 1
@@ -290,8 +311,8 @@ class TrainSupervising:
 
     def __call__(self):
         self.initialize()
-        train_dataset= self.load_dataset()
-        self.train(train_dataset, valid_dataset)
+        train_dataset = self.load_dataset()
+        self.train(train_dataset)
 
 
 class TrainStatic:

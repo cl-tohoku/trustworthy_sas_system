@@ -40,7 +40,7 @@ class Loss:
         device = "cuda" if torch.cuda.is_available() else "cpu"
         prompt_score = torch.tensor(prompt_score).to(device)
 
-        def loss_fn(pred, gold, gradient, annotation, term_idx=None, batch_idx=None):
+        def loss_fn(pred, gold, gradient, orig_gradient, annotation, term_idx=None, batch_idx=None):
             # ordinal mse loss
             pred_score_fixed = pred / prompt_score
             true_score_fixed = gold / prompt_score
@@ -49,13 +49,13 @@ class Loss:
             # calc grad term
             transformed_annotation = annotation[batch_idx][term_idx]
             transformed_annotation = transformed_annotation.unsqueeze(1).repeat(1, gradient.shape[1])
-            ideal_gradient = (transformed_annotation * gradient).detach()
+            ideal_gradient = (transformed_annotation * orig_gradient).detach()
 
-            a, b = torch.flatten(gradient), torch.flatten(ideal_gradient)
+            a, b = torch.flatten(torch.sum(gradient, dim=1)), torch.flatten(torch.sum(ideal_gradient, dim=1))
             loss_second = 1.0 - torch.abs(F.cosine_similarity(a, b, dim=0))
 
             # 勾配が0のときは学習しない
-            if torch.sum(ideal_gradient) != 0.00:
+            if torch.sum(gradient) != 0.00:
                 loss = loss_first + _lambda * loss_second
                 message = 'Loss:{:.4f}, Loss_1:{:.4f}, Loss_2:{:.8f}'
                 if _print:

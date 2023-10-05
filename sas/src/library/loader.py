@@ -31,6 +31,7 @@ class DatasetForBert(Dataset):
         score_tuple = (self.dataset.iloc[item]["score_vector"], self.dataset.iloc[item]["score"], self.dataset.iloc[item]["annotation_matrix"])
         return input_tuple, score_tuple
 
+
 class DatasetForSv(Dataset):
     def __init__(self, dataset):
         self.dataset = dataset
@@ -39,22 +40,9 @@ class DatasetForSv(Dataset):
         return len(self.dataset)
 
     def __getitem__(self, item):
-        input_tuple = (self.dataset.iloc[item]["input_ids"], self.dataset.iloc[item]["token_type_ids"], self.dataset.iloc[item]["attention_mask"])
+        input_tuple = (self.dataset.iloc[item]["input_ids"], self.dataset.iloc[item]["token_type_ids"],
+                       self.dataset.iloc[item]["attention_mask"], self.dataset.iloc[item]["orig_gradient"])
         score_tuple = (self.dataset.iloc[item]["score_vector"], self.dataset.iloc[item]["score"], self.dataset.iloc[item]["annotation_matrix"])
-        return input_tuple, score_tuple
-
-class DatasetForFinetuning(Dataset):
-    def __init__(self, dataset, heuristics):
-        self.dataset = dataset
-        self.heuristics = heuristics
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, item):
-        heuristics_data = self.dataset.iloc[item][self.heuristics]
-        input_tuple = (self.dataset.iloc[item]["input_ids"], self.dataset.iloc[item]["token_type_ids"], self.dataset.iloc[item]["attention_mask"])
-        score_tuple = (self.dataset.iloc[item]["score_vector"], 0, self.dataset.iloc[item]["annotation_matrix"], heuristics_data)
         return input_tuple, score_tuple
 
 
@@ -81,6 +69,21 @@ class Collate:
             it, st = list(zip(*batch))
             it, st = list(zip(*it)), list(zip(*st))
             it_t = (Util.to_tt(it[0],  pad=True), Util.to_tt(it[1], pad=True), Util.to_tt(it[2], pad=True))
+            st_t = (Util.to_tt(st[0], dtype=torch.float32), Util.to_tt(st[1], dtype=torch.float32),
+                    Util.transform_annotation(st[2], ahs))
+            return it_t, st_t
+
+        return collate_fn
+
+    @staticmethod
+    def collate_sv(attention_hidden_size):
+        ahs = attention_hidden_size
+
+        def collate_fn(batch):
+            it, st = list(zip(*batch))
+            it, st = list(zip(*it)), list(zip(*st))
+            it_t = (Util.to_tt(it[0],  pad=True), Util.to_tt(it[1], pad=True), Util.to_tt(it[2], pad=True),
+                    Util.to_tt(it[3], pad=True, dtype=torch.float32))
             st_t = (Util.to_tt(st[0], dtype=torch.float32), Util.to_tt(st[1], dtype=torch.float32),
                     Util.transform_annotation(st[2], ahs))
             return it_t, st_t
@@ -121,4 +124,4 @@ class Loader:
     def to_sv_dataloader(dataset, batch_size, attention_hidden_size):
         dataset_sv = DatasetForSv(dataset)
         collate_fn = Collate.collate_sv(attention_hidden_size)
-        return DataLoader(dataset_sv, batch_size=batch_size, shuffle=True, drop_last=False, collate_fn=collate_fn)
+        return DataLoader(dataset_sv, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn)
