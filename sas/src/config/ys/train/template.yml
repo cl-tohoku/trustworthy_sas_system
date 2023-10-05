@@ -9,9 +9,9 @@ target_type: "analytic"
 loss: "mse"
 learning_rate: 0.0001
 batch_size: 32
-epoch: 200
+epoch: 100
 wandb: true
 wandb_entity: "ekupura"
-wandb_project_name: "0808"
+wandb_project_name: "1002"
 wandb_group: "Y14_1213"
 parallel: true

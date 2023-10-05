@@ -104,7 +104,6 @@ def search(item: SearchItem):
     just = result_df["Mask_Color"].to_list()
 
     # make response
-    print(result_df["Number"].unique())
     responses = {"cluster": [1 for _ in range(len(color))], "token": result_df["Token"].to_list(), 
                  "color": color, "max": 1, "just": just}
     return responses

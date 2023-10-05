@@ -67,9 +67,11 @@ class Util:
             return yaml.load(f)
 
     @staticmethod
-    def load_dataset(config, data_type):
+    def load_dataset(config, data_type, script_name=None, mode=None):
         prep_type = config.preprocessing_type
-        file_name = "{}.{}.{}.{}.{}.pkl".format(config.preprocess_name, config.limitation, prep_type, data_type, config.mode)
+        script_name = config.preprocess_name if script_name is None else script_name
+        mode = config.mode if script_name is None else mode
+        file_name = "{}.{}.{}.{}.{}.pkl".format(script_name, config.limitation, prep_type, data_type, mode)
         file_path = Path(config.dataset_dir) / file_name
 
         return pd.read_pickle(file_path)
@@ -154,6 +156,15 @@ class Util:
         file_name = "{}_{}.state".format(script_name, config.unique_id)
         model = Util.select_model(model_config, config)
         state_dict = torch.load(Path(config.model_dir) / file_name)
+        model.load_state_dict(state_dict)
+        if torch.cuda.is_available():
+            model.cuda()
+        return model
+
+    @staticmethod
+    def load_model_from_path(model_path, model_config):
+        model = SimpleBert(model_config)
+        state_dict = torch.load(Path(model_path))
         model.load_state_dict(state_dict)
         if torch.cuda.is_available():
             model.cuda()

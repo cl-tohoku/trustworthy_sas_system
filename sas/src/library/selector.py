@@ -8,6 +8,10 @@ import seaborn as sns
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import CountVectorizer
 from collections import defaultdict
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import Normalizer
+
+
 
 """
 kmeans = KMeans(n_clusters=2).fit(np.expand_dims(norm_list, axis=1))
@@ -90,4 +94,9 @@ class Selector:
             temporary_list.append(vector / np.linalg.norm(vector))
 
         result_tensor = np.array(temporary_list)
-        return result_tensor
+        # scaling
+        scaler = Normalizer()
+        scaled_data = scaler.fit_transform(result_tensor)
+        a = np.linalg.norm(scaled_data, axis=1)
+
+        return scaled_data

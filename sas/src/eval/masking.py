@@ -4,7 +4,7 @@ from pprint import pprint
 sys.path.append("..")
 from library.util import Util
 from eval.base import EvalBase
-from eval.clustering import Clustering2
+from eval.clustering import Clustering
 
 
 class EvalMasking(EvalBase):
@@ -29,7 +29,7 @@ class EvalMasking(EvalBase):
         self.eval(test_dataset, "test")
 
 
-class ClusteringMasking(Clustering2):
+class ClusteringMasking(Clustering):
     def __init__(self, eval_config, masking_span):
         super().__init__(eval_config)
         self.masking_span = masking_span

@@ -1,4 +1,4 @@
-script_name: "Y14_1213"
+script_name: "Y14_2115"
 unique_id: "analytic"
 model_name: "bert"
 dataset_dir: "data/pickle/Y14"
@@ -9,9 +9,10 @@ target_type: "analytic"
 loss: "mse"
 learning_rate: 0.00001
 batch_size: 4
-epoch: 30
+epoch: 10
 wandb: true
 wandb_entity: "ekupura"
-wandb_project_name: "0808"
-wandb_group: "Y14_1213"
+wandb_project_name: "1006"
+wandb_group: "Y14_2115"
 parallel: true
+limitation: 1000

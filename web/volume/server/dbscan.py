@@ -24,7 +24,7 @@ app.add_middleware(
     allow_headers=["*"]       # 追記により追加
 )
 
-default_script = "Y14_2115_standard"
+default_script = "Y14_2115_contamination"
 
 class State:
     def __init__(self):
@@ -38,8 +38,8 @@ class State:
 
     def join_cluster_data(self, script_name, data_type, term, score, cluster_k):
         # load cluster results
-        file_name = "cluster_df_{}_{}_{}.gzip.pkl".format(term, score, cluster_k)
-        script_path = Path("data") / data_type / script_name / file_name
+        file_name = "{}_{}_{}.gzip.pkl".format(term, score, cluster_k)
+        script_path = Path("data") / data_type / script_name / "cluster" / file_name
         cluster_df = pd.read_pickle(script_path, compression="gzip")
         # join
         self.df = self.base_df[self.base_df["Term"] == term].merge(cluster_df, on='Sample_ID', how='inner')
@@ -56,10 +56,13 @@ class State:
         return responses
 
     def get_scatter_path(self, script_name, data_type, term, score, cluster_k):
-        return "./data/{}/{}/scatter_{}_{}_{}.png".format(data_type, script_name, term, score, cluster_k)
+        return "./data/{}/{}/scatter/{}_{}_{}.png".format(data_type, script_name, term, score, cluster_k)
+    
+    def get_dendrogram_path(self, script_name, data_type, term, score, cluster_k):
+        return "./data/{}/{}/dendrogram/{}_{}_{}.png".format(data_type, script_name, term, score, cluster_k)
     
     def get_inertia_path(self, script_name, data_type, term, score):
-        return "./data/{}/{}/inertia_{}_{}.png".format(data_type, script_name, term, score)
+        return "./data/{}/{}/inertia/{}_{}.png".format(data_type, script_name, term, score)
         
 
 state = State()
@@ -76,8 +79,8 @@ def file():
         file_path = os.path.splitext(os.path.basename(file_path))[0]
         project_list.append(str(file_path))
     project_list = sorted(project_list)
-    responses = {"file": project_list}
-    return responses
+    response = {"file": project_list}
+    return response
 
 @app.get("/clustering/{script_name}/{data_type}/{term}/{score}/{cluster_k}")
 def clustering(script_name: str, data_type: str, term: str, score: int, cluster_k: int):
@@ -94,3 +97,21 @@ def scatter(script_name: str, data_type: str, term: str, score: int, cluster_k: 
 def inertia(script_name: str, data_type: str, term: str, score: int):
     file_path = state.get_inertia_path(script_name, data_type, term, score)
     return FileResponse(file_path, media_type="image/png")
+
+@app.get("/dendrogram/{script_name}/{data_type}/{term}/{score}/{cluster_k}")
+def dendrogram(script_name: str, data_type: str, term: str, score: int, cluster_k: int):
+    file_path = state.get_dendrogram_path(script_name, data_type, term, score, cluster_k)
+    print(file_path)
+    return FileResponse(file_path, media_type="image/png")
+
+@app.get("/rubric/{script_name}")
+def rubric(script_name: str):
+    response = {
+        "term": ["A", "B", "C"],
+        "description": [
+            "緑の庭は",
+            "自然と人間の論理のせめぎあいから生まれる本来の共生ではなく",
+            "自然の論理が排除され、人間の論理だけで作られたものだから",
+        ],
+    }
+    return response

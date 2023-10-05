@@ -7,6 +7,7 @@ sys.path.append("..")
 from library.structure import Script, PromptConfig
 from library.util import Util
 
+
 class YS:
     def __init__(self):
         pass
@@ -41,6 +42,10 @@ class YS:
         script_path = config.script_path
         json_dataset = self.load_dataset(script_path)
         # list(dict) -> list(script)
-        scripts = [self.dict_to_script(d) for d in json_dataset]
+        scripts = []
+        for idx, d in enumerate(json_dataset):
+            script = self.dict_to_script(d)
+            script.Sample_ID = idx
+            scripts.append(script)
         prompt = self.load_prompt(config.prompt_path)
         return scripts, prompt

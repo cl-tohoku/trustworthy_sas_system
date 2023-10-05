@@ -31,6 +31,17 @@ class DatasetForBert(Dataset):
         score_tuple = (self.dataset.iloc[item]["score_vector"], self.dataset.iloc[item]["score"], self.dataset.iloc[item]["annotation_matrix"])
         return input_tuple, score_tuple
 
+class DatasetForSv(Dataset):
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, item):
+        input_tuple = (self.dataset.iloc[item]["input_ids"], self.dataset.iloc[item]["token_type_ids"], self.dataset.iloc[item]["attention_mask"])
+        score_tuple = (self.dataset.iloc[item]["score_vector"], self.dataset.iloc[item]["score"], self.dataset.iloc[item]["annotation_matrix"])
+        return input_tuple, score_tuple
 
 class DatasetForFinetuning(Dataset):
     def __init__(self, dataset, heuristics):
@@ -107,7 +118,7 @@ class Loader:
         return DataLoader(dataset_bert, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn)
 
     @staticmethod
-    def to_finetuning_dataloader(dataset, batch_size, attention_hidden_size, heuristic):
-        dataset_finetuning = DatasetForFinetuning(dataset, heuristic)
-        collate_fn = Collate.collate_finetuning(attention_hidden_size)
-        return DataLoader(dataset_finetuning, batch_size=batch_size, shuffle=True, drop_last=False, collate_fn=collate_fn)
+    def to_sv_dataloader(dataset, batch_size, attention_hidden_size):
+        dataset_sv = DatasetForSv(dataset)
+        collate_fn = Collate.collate_sv(attention_hidden_size)
+        return DataLoader(dataset_sv, batch_size=batch_size, shuffle=True, drop_last=False, collate_fn=collate_fn)

@@ -70,22 +70,9 @@ class PreprocessBase:
             valid_dataset = train_dataset[:int(self.config.limitation * self.config.valid_size)]
 
         # dump
-        self.to_pickle(train_dataset, prep_type, "train")
-        self.to_pickle(valid_dataset, prep_type, "valid")
-        self.to_pickle(test_dataset, prep_type, "test")
-
-    def dump_cross_validation(self, scripts, prep_type, seed=187):
-        # cross-validation
-        scripts = np.array(scripts)
-        kf = KFold(n_splits=5, random_state=seed, shuffle=True)
-        for idx, (train_index, test_index) in enumerate(kf.split(scripts)):
-            train_dataset, test_dataset = scripts[train_index], scripts[test_index]
-            train_dataset, valid_dataset = train_test_split(train_dataset, test_size=self.config.valid_size,
-                                                            shuffle=True, random_state=seed)
-
-            self.to_pickle(train_dataset, prep_type, "train", validation=idx)
-            self.to_pickle(valid_dataset, prep_type, "valid", validation=idx)
-            self.to_pickle(test_dataset, prep_type, "test", validation=idx)
+        self.to_pickle(train_dataset.reset_index(drop=True), prep_type, "train")
+        self.to_pickle(valid_dataset.reset_index(drop=True), prep_type, "valid")
+        self.to_pickle(test_dataset.reset_index(drop=True), prep_type, "test")
 
     def __call__(self):
         # load dataset & parse

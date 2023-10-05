@@ -36,7 +36,7 @@ class Loss:
 
 
     @staticmethod
-    def grad_loss(prompt_score, _lambda=1.0):
+    def grad_loss(prompt_score, _lambda=1.0, _print=False):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         prompt_score = torch.tensor(prompt_score).to(device)
 
@@ -58,11 +58,13 @@ class Loss:
             if torch.sum(ideal_gradient) != 0.00:
                 loss = loss_first + _lambda * loss_second
                 message = 'Loss:{:.4f}, Loss_1:{:.4f}, Loss_2:{:.8f}'
-                print(message.format(loss, loss_first, _lambda * loss_second))
+                if _print:
+                    print(message.format(loss, loss_first, _lambda * loss_second))
             else:
                 loss = loss_first
                 message = 'Loss:{:.4f}, Loss_1:{:.4f}'
-                print(message.format(loss, loss_first))
+                if _print:
+                    print(message.format(loss, loss_first))
 
             return loss
 

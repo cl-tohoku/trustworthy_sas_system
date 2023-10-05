@@ -9,26 +9,20 @@ import HeatmapWrapper from './HeatmapWrapper';
 import Scatter from './Scatter';
 import Cluster from './Cluster';
 import InputForm from './InputForm';
+import Dendrogram from './Dendrogram';
 
 export function Dbscan(props){
   const [result, setResult] = useState();
   const [clusterSize, setClusterSize] = useState(10);
   const [mask, setMask] = useState(false);
-  const [mode, setMode] = useState(true);
   const [setting, setSetting] = useState('Y14_2115_standard');
   const [dataType, setDataType] = useState('train');
-  const [keyword, setKeyword] = useState("");
-  const [eps, setEps] = useState(0.1);
-  const [minSamples, setMinSamples] = useState(5);
   const [imagePath, setImagePath] = useState("");
-  const [loading, setLoading] = useState(false)
   const [term, setTerm] = useState("A")
   const [score, setScore] = useState(2)
   const [inertiaPath, setInertiaPath] = useState("");
-
-  const SetClusterSize = (e) => {
-    setClusterSize(e.target.value)
-  };
+  const [dendrogramPath, setDendrogramPath] = useState("");
+  const [rubric, setRubric] = useState();
 
   const SetMask = (e) => {
     setMask(!mask)
@@ -53,7 +47,32 @@ export function Dbscan(props){
   const RenderInertia = () => {
     return (
       <div className="flex-none m-4 p-2 w-1/3 rounded-lg border border-gray-200 bg-white">
-        <Scatter imagePath={inertiaPath} />;
+        <Scatter imagePath={inertiaPath} />
+      </div>
+    );
+  }
+
+  const RenderDendrogram = () => {
+    return (
+      <div className="flex-none w-auto bg-white">
+        <Dendrogram imagePath={dendrogramPath} />
+      </div>
+    );
+  }
+  
+  const RenderRubric = () => {
+    console.log(rubric)
+    return (
+      <div className="flex-auto w-auto m-4 p-2 rounded-lg border border-gray-200 bg-white">
+        {
+          rubric.term.map((value, index) => {
+            return (
+              <p>
+                {value}:{rubric.description[index]}
+              </p>
+            );
+          })
+        }
       </div>
     );
   }
@@ -65,6 +84,9 @@ export function Dbscan(props){
       .then(data => {setResult(data);});
     GetImagePath();
     GetInertiaPath();
+    GetDendrogramPath();
+    GetRubric();
+    console.log(rubric)
   };
 
   const GetImagePath = () => {
@@ -84,6 +106,23 @@ export function Dbscan(props){
         setInertiaPath(URL.createObjectURL(parsed));
       });
   };
+  
+  const GetDendrogramPath = () => {
+    const dendrogramPoint = `/dendrogram/${setting}/${dataType}/${term}/${score}/${clusterSize}`
+    fetch(dendrogramPoint)
+      .then(response => response.blob())
+      .then(parsed => {
+        setDendrogramPath(URL.createObjectURL(parsed));
+      });
+  };
+
+  const GetRubric = () => {
+    const rubricPoint = `/rubric/${setting}`
+    fetch(rubricPoint)
+      .then(response => response.json())
+      .then(data => {setRubric(data);});
+  };
+  
 
   const SizeBox = () => {
     const handleSizeChange = (e) => {
@@ -179,10 +218,13 @@ export function Dbscan(props){
           </div>
           <div className="flex flex-col w-screen overflow-auto bg-gray-200">
             <div className="flex flex-row h-96 gap-4">
-              {result && RenderScatter()}
               {result && RenderInertia()}
+              {rubric && RenderRubric()}
             </div>
-            <div className="flex flex-col flex-1 bg-gray-0">
+            <div className="flex flex-row flex-1 bg-gray-0 m-4">
+              <div className="flex-none">
+                {result && RenderDendrogram()}
+              </div>
               <div className="flex-1 p-4 pt-6">
                 <Cluster result={result} mask={mask} clusterSize={10}/>
               </div>

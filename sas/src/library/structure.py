@@ -174,6 +174,7 @@ class AttrConfig(YAML):
 
 @dataclass
 class Script:
+    Sample_ID: int = 0
     text: str = ""
     score: int = 0
     score_vector: list = field(default_factory=list)

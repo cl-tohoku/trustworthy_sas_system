@@ -70,8 +70,9 @@ class EvalBase:
 
         # annotation
         annotation = script["annotation_matrix"].to_list()[0]
+        sample_id = script["Sample_ID"].to_list()[0]
 
-        return input_ids, additional_args, output, annotation
+        return input_ids, additional_args, output, annotation, sample_id
 
     def id_to_string_list(self, ids):
         return self.tokenizer.convert_ids_to_tokens(ids)
@@ -161,7 +162,7 @@ class EvalBase:
         attr = FeatureAttribution()
         for idx, script in enumerate(islice(tqdm(dataset.iterrows()), self.train_size)):
             script = pd.DataFrame(script[1]).T
-            input_ids, args, gold_label, annotation_matrix = self.script_extractor(script)
+            input_ids, args, gold_label, annotation_matrix, sample_id = self.script_extractor(script)
             # predict
             with torch.no_grad():
                 output = self.predict(script)
@@ -179,18 +180,14 @@ class EvalBase:
                 results["Pred"].append(pred_label[target])
 
                 # use for visualizer
-                results["Sample_ID"].append(idx)
+                results["Sample_ID"].append(sample_id)
                 results["Term"].append(alpha)
                 results["Max_Score"].append(self.get_max_score(target))
                 input_np = input_ids.squeeze(0).to("cpu").numpy()
                 results["Token"].append(self.id_to_string_list(input_np))
 
-                # for xai
+                # int grad
                 step_size = self.config.step_size
-                vanilla = attr.calc_vanilla_grad(self.model, input_ids, args, target_idx=target, step_size=step_size)
-                vanilla = attr.compress(vanilla)
-                results["Vanilla"].append(vanilla)
-                # ig
                 attribution = attr.calc_int_grad(self.model, input_ids, args, target_idx=target, step_size=step_size)
                 attribution = attr.compress(attribution)
                 results["Attribution"].append(attribution)
@@ -204,6 +201,7 @@ class EvalBase:
                 fitness["Recall_Score"].append(recall)
                 fitness["Precision_Score"].append(precision)
                 print('\rR:{:.5f}, P:{:.5f}'.format(recall, precision), end='')
+
         fitness_df = (pd.DataFrame(fitness))
         results_df = (pd.DataFrame(results))
         return results_df, fitness_df
