@@ -1,4 +1,4 @@
-script_name: "Y14_2115"
+script_name: "Y14_2115_supervising"
 unique_id: "analytic"
 model_name: "bert"
 dataset_dir: "data/pickle/Y14"

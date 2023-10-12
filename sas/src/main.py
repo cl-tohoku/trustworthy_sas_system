@@ -12,7 +12,7 @@ from train.base import TrainBase, TrainSupervising
 from train.base import TrainStatic
 from train.finetuning import TrainFinetuning
 from train.masking import TrainMasking
-from eval.base import EvalBase
+from eval.base import EvalBase, EvalSupervising
 from eval.lazy import Integration, CheckMasking
 from eval.base import EvalStatic
 from eval.clustering import Clustering
@@ -134,6 +134,25 @@ class Main:
         train_config.mode = "sv"
         trainer = TrainSupervising
         trainer(train_config, model_path)()
+
+    def sv_eval(self, config_file_name="supervising.yml", **kwargs):
+        # load configuration files
+        eval_config_path = "config/ys/eval/{}".format(config_file_name)
+        eval_config = Util.load_eval_config(eval_config_path)
+        eval_config.update(kwargs)
+        eval_config.mode = "sv"
+
+        eval_class = EvalSupervising
+        eval_class(eval_config)()
+
+    def sv_clustering(self, config_file_name="supervising.yml", **kwargs):
+        # load configuration files
+        eval_config_path = "config/ys/eval/{}".format(config_file_name)
+        eval_config = Util.load_eval_config(eval_config_path)
+        eval_config.update(kwargs)
+        eval_config.mode = "sv"
+
+        Clustering(eval_config).make_clustering_datasets()
 
     def fitness(self, eval_dir, script_name, **kwargs):
         Integration().quantitative_fitness(eval_dir,  script_name)

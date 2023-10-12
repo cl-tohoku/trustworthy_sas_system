@@ -70,7 +70,7 @@ class Util:
     def load_dataset(config, data_type, script_name=None, mode=None):
         prep_type = config.preprocessing_type
         script_name = config.preprocess_name if script_name is None else script_name
-        mode = config.mode if script_name is None else mode
+        mode = config.mode if mode is None else mode
         file_name = "{}.{}.{}.{}.{}.pkl".format(script_name, config.limitation, prep_type, data_type, mode)
         file_path = Path(config.dataset_dir) / file_name
 
@@ -152,7 +152,7 @@ class Util:
 
     @staticmethod
     def load_model(config, model_config, pretrained=False):
-        script_name = config.pretrained_script_name if pretrained else config.script_name
+        script_name = config.script_name
         file_name = "{}_{}.state".format(script_name, config.unique_id)
         model = Util.select_model(model_config, config)
         state_dict = torch.load(Path(config.model_dir) / file_name)

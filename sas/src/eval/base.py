@@ -240,6 +240,12 @@ class EvalBase:
         self.eval(test_dataset, "test")
 
 
+class EvalSupervising(EvalBase):
+    def __init__(self, eval_config):
+        super().__init__(eval_config)
+
+
+
 class EvalStatic:
     @staticmethod
     def cross_validation(eval_config, eval=EvalBase, k=5):
