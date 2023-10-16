@@ -77,6 +77,16 @@ class Util:
         return pd.read_pickle(file_path)
 
     @staticmethod
+    def load_sf_dataset(config, data_type, script_name=None, mode=None):
+        prep_type = config.preprocessing_type
+        script_name = config.preprocess_name if script_name is None else script_name
+        mode = config.mode if mode is None else mode
+        file_name = "{}.{}.{}.sf-{}.{}.pkl".format(script_name, config.limitation, prep_type, data_type, mode)
+        file_path = Path(config.dataset_dir) / file_name
+
+        return pd.read_pickle(file_path)
+
+    @staticmethod
     def load_masking_dataset(config, data_type, masking_span):
         prep_type = config.preprocessing_type
         file_name = "{}.{}.{}.{}.pkl".format(config.script_name, prep_type, data_type, masking_span)

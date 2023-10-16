@@ -8,6 +8,7 @@ from preprocess.finetuning import PreprocessFinetuning
 from preprocess.masking import PreprocessMasking
 from preprocess.supervising import PreprocessSupervising
 from preprocess.contamination import PreprocessContamination
+from preprocess.superficial import PreprocessSuperficial
 from train.base import TrainBase, TrainSupervising
 from train.base import TrainStatic
 from train.finetuning import TrainFinetuning
@@ -32,6 +33,11 @@ class Main:
             PreprocessContamination(config)()
         if config.masking_path:
             PreprocessMasking(config)()
+
+    def sf_preprocess(self, config_path, superficial_cue, rubric_cue, **kwargs):
+        config = Util.load_preprocess_config(config_path)
+        config.update(kwargs)
+        PreprocessSuperficial(config, superficial_cue, rubric_cue)()
 
     def train(self, train_config_path, **kwargs):
         # load configuration files
@@ -101,7 +107,7 @@ class Main:
                             script_name=script_name, limitation=limitation)
 
     # 2nd round
-    def supervising_preprocess(self, config_path, script_name, prev_mode, cluster_df_path, elimination_id, **kwargs):
+    def sv_preprocess(self, config_path, script_name, prev_mode, cluster_df_path, elimination_id, **kwargs):
         config = Util.load_preprocess_config(config_path)
         config.update(kwargs)
         elimination_list = [int(_id) for _id in elimination_id.split(" ")]
@@ -123,9 +129,9 @@ class Main:
         config_path = "config/ys/preprocess/{}.yml".format(prompt_name)
 
         # execute
-        self.supervising_preprocess(config_path=config_path, prev_mode=prev_mode, script_name=script_name,
-                                    cluster_df_path=cluster_df_path, elimination_id=elimination_id,
-                                    preprocess_name=prompt_name, limitation=limitation,)
+        self.sv_preprocess(config_path=config_path, prev_mode=prev_mode, script_name=script_name,
+                           cluster_df_path=cluster_df_path, elimination_id=elimination_id,
+                           preprocess_name=prompt_name, limitation=limitation,)
 
     def sv_train(self, config_file_name="supervising.yml", model_path="", **kwargs):
         train_config_path = "config/ys/train/{}".format(config_file_name)

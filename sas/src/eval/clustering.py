@@ -132,7 +132,7 @@ class Clustering:
                 sliced_2_df = sliced_df[sliced_df["Pred"] == score]
                 data_points = self.transform_attribution(sliced_2_df)
                 inertia_list = []
-                if len(sliced_2_df) < 21:
+                if len(sliced_2_df) < 30:
                     continue
                 for cluster_k in tqdm(cluster_k_list):
                     # calculate cosine similarity for each data points

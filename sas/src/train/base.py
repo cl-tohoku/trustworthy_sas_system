@@ -92,8 +92,13 @@ class TrainBase:
         wandb.log({"{}_loss".format(phase): loss}, commit=commit)
 
     def load_dataset(self):
-        train_dataset = Util.load_dataset(self.config, "train")
-        valid_dataset = Util.load_dataset(self.config, "valid")
+        # 訓練だけ特製のデータセットを使う
+        if "superficial" in self.config.mode:
+            train_dataset = Util.load_sf_dataset(self.config, "train")
+            valid_dataset = Util.load_sf_dataset(self.config, "valid")
+        else:
+            train_dataset = Util.load_dataset(self.config, "train")
+            valid_dataset = Util.load_dataset(self.config, "valid")
         return train_dataset, valid_dataset
 
     def to_dataloader(self, dataset):
