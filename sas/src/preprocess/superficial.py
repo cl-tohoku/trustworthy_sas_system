@@ -127,11 +127,12 @@ class PreprocessSuperficial:
         for term_idx in range(prompt.scoring_item_num):
             top_k_words = self.get_top_k_words(train_df, term_idx)
             print(top_k_words)
+            term = chr(65 + term_idx)
             for superficial_word in top_k_words:
                 superficial_train_df = self.superficial(train_df, superficial_word)
                 superficial_valid_df = self.superficial(valid_df, superficial_word)
-                self.to_pickle(superficial_train_df, "{}-train".format(superficial_word))
-                self.to_pickle(superficial_valid_df, "{}-valid".format(superficial_word))
+                self.to_pickle(superficial_train_df, "{}-{}-train".format(term, superficial_word))
+                self.to_pickle(superficial_valid_df, "{}-{}-valid".format(term, superficial_word))
 
         # output default dataset
         self.to_pickle(train_df, "train")

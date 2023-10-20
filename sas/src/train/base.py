@@ -92,10 +92,10 @@ class TrainBase:
         wandb.log({"{}_loss".format(phase): loss}, commit=commit)
 
     def load_dataset(self):
-        # 訓練だけ特製のデータセットを使う
+        # sfの場合、訓練だけ特製のデータセットを使う
         if "superficial" in self.config.mode:
-            train_dataset = Util.load_sf_dataset(self.config, "train")
-            valid_dataset = Util.load_sf_dataset(self.config, "valid")
+            train_dataset = Util.load_sf_dataset(self.config, "train", sf_cue=self.config.superficial_cue)
+            valid_dataset = Util.load_sf_dataset(self.config, "valid", sf_cue=self.config.superficial_cue)
         else:
             train_dataset = Util.load_dataset(self.config, "train")
             valid_dataset = Util.load_dataset(self.config, "valid")

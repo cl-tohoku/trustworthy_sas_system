@@ -34,7 +34,7 @@ class Main:
         if config.masking_path:
             PreprocessMasking(config)()
 
-    def sf_preprocess(self, config_path, superficial_cue, rubric_cue, **kwargs):
+    def sf_preprocess(self, config_path, superficial_cue=None, rubric_cue=None, **kwargs):
         config = Util.load_preprocess_config(config_path)
         config.update(kwargs)
         PreprocessSuperficial(config, superficial_cue, rubric_cue)()
@@ -83,14 +83,15 @@ class Main:
 
     # 1st rounf
     def execute(self, prompt_name="Y14_1213", script_name="Y14_1213_XX", limitation=0, config_file_name="template.yml",
-                mode="standard", training=True, evaluation=True, clustering=True):
+                mode="standard", training=True, evaluation=True, clustering=True, superficial_cue=None):
 
         # 訓練
         if training:
             print("Training...")
             train_config_path = "config/ys/train/{}".format(config_file_name)
             self.train(train_config_path=train_config_path, preprocess_name=prompt_name, mode=mode,
-                       script_name=script_name, limitation=limitation, wandb_group=script_name)
+                       script_name=script_name, limitation=limitation, wandb_group=script_name,
+                       superficial_cue=superficial_cue)
 
         # 評価
         if evaluation:

@@ -118,6 +118,7 @@ class TrainConfig(YAML):
     limitation: int = 0
     mode: str = "standard"
     pretrained_script_name: str = ""
+    superficial_cue: str = None
 
 
 @dataclass
