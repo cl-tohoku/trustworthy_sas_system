@@ -15,7 +15,7 @@ from sklearn.model_selection import KFold
 sys.path.append("..")
 from library.structure import Script
 from preprocess.ys import YS
-from preprocess.toppan import Toppan
+#from preprocess.toppan import Toppan
 from preprocess.fasttext import PreprocessFastText
 from preprocess.bert import PreprocessBert
 from library.util import Util

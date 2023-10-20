@@ -60,6 +60,7 @@ class Clustering:
         cosine_distance = 1.0 - cosine_similarity(data_points)
         Z = linkage(cosine_distance, method='ward')
         cluster_labels = fcluster(Z, t=cluster_k, criterion='maxclust') - 1
+        cluster_labels = np.max(cluster_labels) - cluster_labels
         inertia = np.mean(np.min(1 - cosine_similarity(data_points, np.array([np.mean(data_points[cluster_labels == i], axis=0) for i in range(cluster_k)])), axis=1))
         return cluster_labels.tolist(), inertia, Z
 

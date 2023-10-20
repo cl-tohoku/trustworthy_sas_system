@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import warnings
-from pandas.core.common import SettingWithCopyWarning
+#from pandas.core.common import SettingWithCopyWarning
 
 
 sys.path.append("..")
@@ -18,7 +18,7 @@ class PreprocessMasking:
     def __init__(self, prep_config):
         self.config = prep_config
         self.mask_id = 101 # unk
-        warnings.simplefilter("ignore", SettingWithCopyWarning)
+        #warnings.simplefilter("ignore", SettingWithCopyWarning)
 
     def masking(self, df, masking_conf):
         masked_series = []

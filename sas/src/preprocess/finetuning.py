@@ -13,13 +13,13 @@ from tqdm import tqdm
 from sklearn.metrics import recall_score
 import string
 import warnings
-from pandas.core.common import SettingWithCopyWarning
+#from pandas.core.common import SettingWithCopyWarning
 
 
 sys.path.append("..")
 from library.structure import Script
 from preprocess.ys import YS
-from preprocess.toppan import Toppan
+#from preprocess.toppan import Toppan
 from preprocess.fasttext import PreprocessFastText
 from preprocess.bert import PreprocessBert
 from preprocess.base import PreprocessBase
@@ -34,7 +34,7 @@ class PreprocessFinetuning:
         self.min_cluster_size = 5
         self.max_cluster_size = 20
         self.max_selection_size = 10
-        warnings.simplefilter("ignore", SettingWithCopyWarning)
+        #warnings.simplefilter("ignore", SettingWithCopyWarning)
 
     def calc_overlap_ratio(self, annotation, attribution):
         recall_list = []

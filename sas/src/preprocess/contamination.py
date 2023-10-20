@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import warnings
-from pandas.core.common import SettingWithCopyWarning
+#from pandas.core.common import SettingWithCopyWarning
 
 
 sys.path.append("..")
@@ -17,7 +17,7 @@ from library.util import Util
 class PreprocessContamination:
     def __init__(self, prep_config):
         self.config = prep_config
-        warnings.simplefilter("ignore", SettingWithCopyWarning)
+        #warnings.simplefilter("ignore", SettingWithCopyWarning)
 
     def to_pickle(self, df, data_type):
         file_name = "{}.{}.bert.{}.contamination.pkl".format(self.config.preprocess_name,
