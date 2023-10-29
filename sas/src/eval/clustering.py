@@ -15,7 +15,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.cluster import SpectralClustering
 from sklearn.cluster import AgglomerativeClustering
 from scipy.spatial.distance import pdist
-
+import seaborn as sns
 import itertools
 
 sys.path.append("..")
@@ -90,6 +90,49 @@ class Clustering:
         plt.tight_layout()
         plt.savefig(output_path)
 
+    def calc_score(self, part_df):
+        annotation, attribution = part_df["Annotation"], part_df["Attribution"]
+        score_list = []
+        for anno, attr in zip(annotation, attribution):
+            attr = np.array(attr)
+            attr[attr < 0.0] = 0.0
+            attr_all = np.sum(attr)
+            attr_lap = np.dot(attr, anno)
+            if attr_lap <= 0.0:
+                score_list.append(-1.0)
+            else:
+                score_list.append(attr_lap / attr_all)
+        score_array = np.array(score_list)
+        return list(score_array[score_array != -1.0])
+
+    def plot_score(self, data_df, cluster_df, output_path):
+        int_df = data_df.merge(cluster_df, on="Sample_ID", how="inner")
+        cluster_array = np.sort(int_df["Cluster"].unique())
+        score_list, id_list = [], []
+        for cluster_id in cluster_array:
+            part_df = int_df[int_df["Cluster"] == cluster_id]
+            s_list = self.calc_score(part_df)
+            score_list.extend(s_list)
+            id_list.extend([cluster_id for _ in s_list])
+
+        result_df = pd.DataFrame({"Score": score_list, "Cluster": id_list})
+        plt.figure()
+        sns.boxplot(data=result_df, y="Score", x="Cluster")
+        plt.xlabel("Cluster ID")
+        plt.ylabel("Ratio score")
+        plt.tight_layout()
+        plt.savefig(output_path)
+
+    def calc_score_2(self, part_df):
+        def calc_ratio_score(anno, attr):
+            attr = np.array(attr)
+            attr[attr < 0.0] = 0.0
+            attr_all, attr_lap = np.sum(attr), np.dot(attr, anno)
+            return -1.0 if attr_lap <= 0.0 else attr_lap / attr_all
+
+        score_list = part_df.apply(lambda x: calc_ratio_score(x["Annotation"], x["Attribution"]), axis=1).tolist()
+        return score_list
+
     def plot_inertia(self, cluster_k_list, inertia_list, output_path):
         plt.figure(figsize=(7, 4))
         plt.plot(cluster_k_list, inertia_list, 'bo-')
@@ -120,6 +163,7 @@ class Clustering:
         os.makedirs(output_dir / "dendrogram", exist_ok=True)
         os.makedirs(output_dir / "scatter", exist_ok=True)
         os.makedirs(output_dir / "inertia", exist_ok=True)
+        os.makedirs(output_dir / "score", exist_ok=True)
         data_df.to_pickle(output_dir / "data_df.gzip.pkl", compression="gzip")
 
         # clustering setting
@@ -135,6 +179,8 @@ class Clustering:
                 inertia_list = []
                 if len(sliced_2_df) < 30:
                     continue
+                if score == 0:
+                    continue
                 for cluster_k in tqdm(cluster_k_list):
                     # calculate cosine similarity for each data points
                     # clustering
@@ -143,6 +189,9 @@ class Clustering:
                     cluster_dict = dict()
                     cluster_dict["Sample_ID"] = sliced_2_df["Sample_ID"].to_list()
                     cluster_dict["Cluster"] = labels
+                    # calc score
+                    score_list = self.calc_score_2(sliced_2_df)
+                    cluster_dict["Score"] = score_list
                     # output data
                     cluster_df = pd.DataFrame(cluster_dict)
                     file_name = "{}_{}_{}.gzip.pkl".format(term, score, cluster_k)
@@ -154,6 +203,8 @@ class Clustering:
                     file_name = "{}_{}_{}.png".format(term, score, cluster_k)
                     self.plot_scatter(data_points, labels, output_dir / "scatter" / file_name)
                     inertia_list.append(inertia)
+                    # plot score
+                    self.plot_score(sliced_2_df, cluster_df, output_dir / "score" / file_name)
 
                 # plot inertia
                 file_name = "{}_{}.png".format(term, score)

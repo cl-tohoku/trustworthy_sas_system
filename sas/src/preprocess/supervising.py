@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import warnings
-#from pandas.core.common import SettingWithCopyWarning
 
 
 sys.path.append("..")
@@ -17,9 +16,21 @@ from library.util import Util
 class PreprocessSupervising:
     def __init__(self, prep_config):
         self.config = prep_config
-        #warnings.simplefilter("ignore", SettingWithCopyWarning)
 
-    def execute(self, script_name, pre_mode, cluster_df_path, elimination_list):
+    def heuristic(self, train_df, cluster_df):
+        int_df = train_df.merge(cluster_df, on="Sample_ID", how="inner")
+        cluster_array = np.sort(int_df["Cluster"].unique())
+        median_arr = np.array([np.median(int_df[int_df["Cluster"] == c_id]["Score"]) for c_id in cluster_array])
+        select_id = np.argsort(median_arr)[:3]
+        # threshold = np.mean(median_arr)
+        # select_id = np.argwhere(median_arr <= threshold)[:, 0]
+        return select_id
+
+    def sampling(self, df):
+        pass
+
+    # method
+    def execute(self, script_name, pre_mode, cluster_df_path, elimination_list=None):
         # load dataset
         size = self.config.limitation
         prep_name = self.config.preprocess_name
@@ -29,8 +40,15 @@ class PreprocessSupervising:
 
         # make elimination dataset
         cluster_df = pd.read_pickle(cluster_df_path, compression="gzip")
+        elimination_list = self.heuristic(train_df, cluster_df) if elimination_list is None else elimination_list
         select_idx = cluster_df[cluster_df["Cluster"].isin(elimination_list)]["Sample_ID"].to_list()
         elim_df = train_df[train_df["Sample_ID"].isin(select_idx)]
+
+        # sampling
+        elim_df = elim_df.merge(cluster_df, on="Sample_ID", how="inner")
+        elim_df = elim_df.groupby("Cluster").head(10).reset_index(drop=True)
+
+        # output
         self.to_pickle(elim_df, "elim", script_name)
 
         # output default data

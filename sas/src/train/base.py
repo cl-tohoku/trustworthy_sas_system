@@ -9,6 +9,9 @@ import os
 from tqdm import tqdm
 import uuid
 import datetime
+import random
+from torch.utils.data import Dataset, Subset
+
 from captum.attr import IntegratedGradients
 import torch.nn.functional as F
 from scipy.special import roots_legendre
@@ -171,7 +174,7 @@ class TrainSupervising:
         self.config = train_config
         self.model_config = Util.load_model_config(train_config.model_config_path)
         self.prompt_config = Util.load_prompt(self.config)
-        self.model, self.loss = None, None
+        self.model, self.loss, self.mse_loss = None, None, None
         self.model_path = model_path
         self.optimizer = None
         self.best_valid_loss = 1e+10
@@ -189,7 +192,8 @@ class TrainSupervising:
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.target_idx = target_idx
-        self.step_size = 128
+        # 同じに設定する
+        self.step_size = 16
         self.internal_size = 16
 
     def initialize(self,):
@@ -226,7 +230,9 @@ class TrainSupervising:
             max_score = sum(self.prompt_config.max_scores)
 
         # set grad loss function
-        self.loss = Loss.grad_loss(max_score, _lambda=1e+0, _print=True)
+        self.loss = Loss.grad_loss(max_score, _lambda=1e-1, _print=True)
+        self.mse_loss = Loss.mse_loss(max_score)
+
 
     def set_optimizer(self):
         self.optimizer = AdamW(self.model.parameters(), lr=self.config.learning_rate)
@@ -262,10 +268,20 @@ class TrainSupervising:
 
         dataset["orig_gradient"] = grad_list
         baseline_model.cpu()
-        return dataset
+
+        corr_dataset = Util.load_dataset(self.config, "train", self.config.script_name, "sv")
+        sampling_size = 100
+        indices = random.sample(range(sampling_size), sampling_size)
+        corr_dataset = corr_dataset.iloc[indices].reset_index(drop=True)
+
+        return dataset, corr_dataset
 
     def to_dataloader(self, dataset):
         loader = Loader.to_sv_dataloader
+        return loader(dataset, self.config.batch_size, self.model_config.attention_hidden_size)
+
+    def to_corr_dataloader(self, dataset):
+        loader = Loader.to_bert_dataloader if self.prep_type == "bert" else Loader.to_ft_dataloader
         return loader(dataset, self.config.batch_size, self.model_config.attention_hidden_size)
 
     def calc_gradient(self, data_tuple):
@@ -298,26 +314,39 @@ class TrainSupervising:
             self.log_wandb("train", np.mean(losses), commit=False)
         return np.mean(losses)
 
+    def correction_phase(self, corr_loader):
+        self.model.train()
+        losses = []
+        for data_tuple in tqdm(corr_loader):
+            self.optimizer.zero_grad()
+            output = self.predict(data_tuple)
+            loss = self.mse_loss(input=output[0], target=data_tuple[1][0])
+            loss.backward()
+            self.optimizer.step()
+            losses.append(loss.item())
+
+        return np.mean(losses)
+
     def save_model(self):
         Util.save_model(self.model, self.config)
 
-    def train(self, train_dataset):
+    def train(self, train_dataset, corr_dataset):
         train_loader = self.to_dataloader(train_dataset)
+        corr_loader = self.to_corr_dataloader(corr_dataset)
 
         for n in range(self.config.epoch):
             epoch = n + 1
-            print("epoch:{}".format(epoch))
+            print("\nepoch:{}".format(epoch))
             train_loss = self.training_phase(train_loader)
-            # valid_loss = self.validation_phase(valid_loader)
-            # print("train loss: {:.3f}, valid loss: {:.3f}".format(train_loss, valid_loss))
-            print("train loss: {:.3f}".format(train_loss))
-            # if self.is_best(valid_loss) or epoch == 1:
+            print("\ntrain loss: {:.3f}".format(train_loss))
+            corr_loss = self.correction_phase(corr_loader)
+            print("\ncorr loss: {:.3f}".format(corr_loss))
             self.save_model()
 
     def __call__(self):
         self.initialize()
-        train_dataset = self.load_dataset()
-        self.train(train_dataset)
+        train_dataset, corr_dataset = self.load_dataset()
+        self.train(train_dataset, corr_dataset)
 
 
 class TrainStatic:

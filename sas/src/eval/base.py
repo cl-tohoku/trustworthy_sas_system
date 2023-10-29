@@ -230,13 +230,13 @@ class EvalBase:
         self.model = Util.load_model(self.config, self.model_config)
         # train set
         print("Train")
-        train_dataset = Util.load_dataset(self.config, "train",)
+        train_dataset = Util.load_dataset(self.config, "train", self.config.script_name)
         self.train_size = len(train_dataset)
         self.eval(train_dataset, "train")
         # test set
         pprint(self.config)
         print("Test")
-        test_dataset = Util.load_dataset(self.config, "test",)
+        test_dataset = Util.load_dataset(self.config, "test", self.config.script_name)
         self.eval(test_dataset, "test")
 
 

@@ -11,7 +11,6 @@ from preprocess.contamination import PreprocessContamination
 from preprocess.superficial import PreprocessSuperficial
 from train.base import TrainBase, TrainSupervising
 from train.base import TrainStatic
-from train.finetuning import TrainFinetuning
 from train.masking import TrainMasking
 from eval.base import EvalBase, EvalSupervising
 from eval.lazy import Integration, CheckMasking
@@ -81,7 +80,7 @@ class Main:
         self.preprocess(config_path=preprocess_config_path, preprocess_name=prompt_name, limitation=limitation,
                         contamination_path=cont_path)
 
-    # 1st rounf
+    # 1st round
     def execute(self, prompt_name="Y14_1213", script_name="Y14_1213_XX", limitation=0, config_file_name="template.yml",
                 mode="standard", training=True, evaluation=True, clustering=True, superficial_cue=None):
 
@@ -111,18 +110,18 @@ class Main:
     def sv_preprocess(self, config_path, script_name, prev_mode, cluster_df_path, elimination_id, **kwargs):
         config = Util.load_preprocess_config(config_path)
         config.update(kwargs)
-        elimination_list = [int(_id) for _id in elimination_id.split(" ")]
+        elimination_list = [int(_id) for _id in elimination_id.split(" ")] if elimination_id is not None else None
         PreprocessSupervising(config).execute(script_name, prev_mode, cluster_df_path, elimination_list)
 
     # wrapper
-    def sv_preprocess_wrapper(self, prompt_name, script_name, limitation, elimination_id="",
+    def sv_preprocess_wrapper(self, prompt_name, script_name, limitation, elimination_id=None,
                               cluster_df_path="", prev_mode="contamination"):
         """
         script_name: 2週目の実験名を設定する
         limitation: 実験データの数
         elimination_id: 排除対象のクラスタID
         cluster_df_path: 参照対象のクラスタデータのパス
-        prev_mode: "contamination" or "standard"
+        prev_mode: "superficial" or "contamination" or "standard"
         """
 
         # preprocess for supervising
@@ -134,13 +133,14 @@ class Main:
                            cluster_df_path=cluster_df_path, elimination_id=elimination_id,
                            preprocess_name=prompt_name, limitation=limitation,)
 
-    def sv_train(self, config_file_name="supervising.yml", model_path="", **kwargs):
+    def sv_train(self, config_file_name="supervising.yml", model_path="", term="A", **kwargs):
         train_config_path = "config/ys/train/{}".format(config_file_name)
         train_config = Util.load_train_config(train_config_path)
         train_config.update(kwargs)
         train_config.mode = "sv"
         trainer = TrainSupervising
-        trainer(train_config, model_path)()
+        target_idx = ord("A") - ord(term)
+        trainer(train_config, model_path, target_idx)()
 
     def sv_eval(self, config_file_name="supervising.yml", **kwargs):
         # load configuration files

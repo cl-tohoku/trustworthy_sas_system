@@ -55,7 +55,7 @@ class Loss:
             loss_second = 1.0 - torch.abs(F.cosine_similarity(a, b, dim=0))
 
             # 勾配が0のときは学習しない
-            if torch.sum(gradient) != 0.00:
+            if torch.sum(gradient) != 0.00 and torch.sum(b) != 0.00:
                 loss = loss_first + _lambda * loss_second
                 message = 'Loss:{:.4f}, Loss_1:{:.4f}, Loss_2:{:.8f}'
                 if _print:
