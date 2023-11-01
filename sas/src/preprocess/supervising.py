@@ -32,11 +32,11 @@ class PreprocessSupervising:
     # method
     def execute(self, script_name, pre_mode, cluster_df_path, elimination_list=None):
         # load dataset
-        size = self.config.limitation
         prep_name = self.config.preprocess_name
-        train_df = Util.load_dataset_static(prep_name, size, "bert", "train", self.config.dataset_dir, pre_mode)
-        valid_df = Util.load_dataset_static(prep_name, size, "bert", "valid", self.config.dataset_dir, pre_mode)
-        test_df = Util.load_dataset_static(prep_name, size, "bert", "test", self.config.dataset_dir, pre_mode)
+        dataset_dir = self.config.dataset_dir
+        train_df = Util.load_dataset_static(prep_name, "train", pre_mode, dataset_dir)
+        valid_df = Util.load_dataset_static(prep_name, "valid", pre_mode, dataset_dir)
+        test_df = Util.load_dataset_static(prep_name, "test", pre_mode, dataset_dir)
 
         # make elimination dataset
         cluster_df = pd.read_pickle(cluster_df_path, compression="gzip")
@@ -61,7 +61,7 @@ class PreprocessSupervising:
         self.dump_prompt(prompt)
 
     def to_pickle(self, df, data_type, script_name):
-        file_name = "{}.{}.bert.{}.sv.pkl".format(script_name, self.config.limitation, data_type)
+        file_name = "{}.{}.sv.pkl".format(script_name, data_type)
 
         # dump
         os.makedirs(Path(self.config.dataset_dir), exist_ok=True)
@@ -69,6 +69,6 @@ class PreprocessSupervising:
 
     def dump_prompt(self, prompt):
         os.makedirs(self.config.dataset_dir, exist_ok=True)
-        file_name = "{}.{}.sv.prompt.yml".format(self.config.preprocess_name, self.config.limitation)
+        file_name = "{}.sv.prompt.yml".format(self.config.preprocess_name)
         file_path = Path(self.config.dataset_dir) / file_name
         prompt.save(file_path)

@@ -43,26 +43,7 @@ class Util:
         return PromptConfig.load(Path(config_path))
 
     @staticmethod
-    def load_contamination_config(config_path):
-        with open(config_path, "r") as f:
-            return yaml.load(f)
-
-    @staticmethod
-    def load_masking_config(config_path):
-        with open(config_path, "r") as f:
-            return yaml.load(f)
-
-    @staticmethod
-    def load_supervising_config(config_path):
-        with open(config_path, "r") as f:
-            return yaml.load(f)
-
-    @staticmethod
     def load_sweep_config(sweep_path):
-        """
-        :param sweep_path: str, e.g. "config/sweep.yml"
-        :return: dict
-        """
         with open(sweep_path, "r") as f:
             return yaml.load(f)
 
@@ -87,24 +68,13 @@ class Util:
         return pd.read_pickle(file_path)
 
     @staticmethod
-    def load_masking_dataset(config, data_type, masking_span):
-        prep_type = config.preprocessing_type
-        file_name = "{}.{}.{}.{}.pkl".format(config.script_name, prep_type, data_type, masking_span)
-        file_path = Path(config.dataset_dir) / "masking" / file_name
-        return pd.read_pickle(file_path)
-
-    @staticmethod
-    def load_dataset_static(script_name, limitation, prep_type, data_type, dataset_dir, mode="standard"):
-        file_name = "{}.{}.{}.{}.{}.pkl".format(script_name, limitation, prep_type, data_type, mode)
+    def load_dataset_static(prompt_name, data_type, mode, dataset_dir):
+        file_name = "{}.{}.{}.pkl".format(prompt_name, data_type, mode)
         file_path = Path(dataset_dir) / file_name
         return pd.read_pickle(file_path)
 
     @staticmethod
     def load_vectors(config):
-        """
-        :param config: Config
-        :return: vectors:
-        """
         file_path = Path(config.dataset_dir) / "{}.fasttext.vectors.pkl".format(config.script_name)
         with open(file_path, "rb") as f:
             return pickle.load(f)

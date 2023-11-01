@@ -4,20 +4,14 @@ from itertools import product
 # my libraries
 from library.util import Util
 from preprocess.base import PreprocessBase
-from preprocess.finetuning import PreprocessFinetuning
-from preprocess.masking import PreprocessMasking
 from preprocess.supervising import PreprocessSupervising
-from preprocess.contamination import PreprocessContamination
 from preprocess.superficial import PreprocessSuperficial
 from train.base import TrainBase, TrainSupervising
 from train.base import TrainStatic
-from train.masking import TrainMasking
 from eval.base import EvalBase, EvalSupervising
 from eval.lazy import Integration, CheckMasking
 from eval.base import EvalStatic
 from eval.clustering import Clustering
-from eval.finetuning import EvalFinetuning
-from eval.masking import EvalMasking, ClusteringMasking
 
 
 class Main:
@@ -28,15 +22,11 @@ class Main:
         config = Util.load_preprocess_config(config_path)
         config.update(kwargs)
         PreprocessBase(config)()
-        if config.contamination_path:
-            PreprocessContamination(config)()
-        if config.masking_path:
-            PreprocessMasking(config)()
 
-    def sf_preprocess(self, config_path, superficial_cue=None, rubric_cue=None, **kwargs):
+    def sf_preprocess(self, config_path, **kwargs):
         config = Util.load_preprocess_config(config_path)
         config.update(kwargs)
-        PreprocessSuperficial(config, superficial_cue, rubric_cue)()
+        PreprocessSuperficial(config)()
 
     def train(self, train_config_path, **kwargs):
         # load configuration files

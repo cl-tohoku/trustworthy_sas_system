@@ -56,18 +56,12 @@ class PreprocessConfig(YAML):
     preprocess_name: str = "Y14_1213"
     script_path: str = "data/data_ys/Y14/Y14_1-2_1_3.json"
     prompt_path: str = "config/prompt/test_prompt.yml"
-    contamination_path: str = ""
-    masking_path: str = ""
-    supervising_path: str = ""
-    superficial_path: str = ""
     dataset_dir: str = "data/pickle/Y14"
     dataset_type: str = "ys"
     download_ft: bool = False
     max_length: int = 512
     test_size: float = 0.2
     valid_size: float = 0.2
-    limitation: int = 0
-    finetuning_dir: str = ""
 
 
 @dataclass
@@ -82,7 +76,7 @@ class PromptConfig(YAML):
 class TrainConfig(YAML):
     # I/O
     preprocess_name: str = "Y14_1213"
-    script_name: str = "Y14_1-2_1_3"
+    script_name: str = "Y14_1213_standard"
     dataset_dir: str = "data/pickle/Y14"
     model_dir: str = "data/model"
     model_config_path: str = ""

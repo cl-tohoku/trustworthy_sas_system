@@ -15,3 +15,4 @@ wandb_entity: "ekupura"
 wandb_project_name: "1002"
 wandb_group: "Y14_1213"
 parallel: true
+limitation: 1000

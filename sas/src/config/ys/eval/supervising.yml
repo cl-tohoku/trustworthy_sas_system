@@ -14,5 +14,5 @@ cluster_dir: "data/cluster/Y14"
 point_type: "counter"
 gold_cluster_dir: "data/cluster/Y14/gold_dict"
 finetuning_dir: "data/finetuning"
-step_size: 128
+step_size: 512
 limitation: 1000

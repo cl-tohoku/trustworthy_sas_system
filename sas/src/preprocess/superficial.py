@@ -18,15 +18,11 @@ from library.util import Util
 
 
 class PreprocessSuperficial:
-    def __init__(self, prep_config, superficial_cue=None, rubric_cue=None):
+    def __init__(self, prep_config):
         self.config = prep_config
-        #warnings.simplefilter("ignore", SettingWithCopyWarning)
-        self.superficial_cue = superficial_cue
-        self.rubric_cue = rubric_cue
 
     def to_pickle(self, df, data_type):
-        file_name = "{}.{}.bert.{}.superficial.pkl".format(self.config.preprocess_name,
-                                                           self.config.limitation, data_type)
+        file_name = "{}.{}.superficial.pkl".format(self.config.preprocess_name, data_type)
 
         # dump
         os.makedirs(Path(self.config.dataset_dir), exist_ok=True)
@@ -34,27 +30,12 @@ class PreprocessSuperficial:
 
     def dump_prompt(self, prompt):
         os.makedirs(self.config.dataset_dir, exist_ok=True)
-        file_name = "{}.{}.superficial.prompt.yml".format(self.config.preprocess_name,
-                                                            self.config.limitation)
+        file_name = "{}.superficial.prompt.yml".format(self.config.preprocess_name)
         file_path = Path(self.config.dataset_dir) / file_name
         prompt.save(file_path)
 
-    def check_occurrence(self, input_string):
-        for word in [self.superficial_cue, self.rubric_cue]:
-            if word not in input_string:
-                return False
-        return True
-
-    def check_nothing(self, input_string):
-        for word in [self.superficial_cue, self.rubric_cue]:
-            if word in input_string:
-                return False
-        return True
 
     def superficial_filter(self, sentence_series, score_series, superficial_cue=None):
-        if superficial_cue is None:
-            superficial_cue = self.superficial_cue
-
         def filter_method(sentence, score):
             cond2 = superficial_cue in sentence
             cond3 = score > 0
@@ -80,7 +61,6 @@ class PreprocessSuperficial:
         m = MeCab.Tagger()
         nodes = m.parse(text).split("\n")
         words = []
-        #filter_pos = ["名詞", "動詞"]
         filter_pos = ["名詞"]
 
         for node in nodes[:-2]:  # 最後の2行は ['EOS', ''] なので除外
@@ -117,10 +97,9 @@ class PreprocessSuperficial:
         return top_k_word
 
     def execute(self):
-        size = self.config.limitation
-        train_df = Util.load_dataset_static(self.config.preprocess_name, size, "bert", "train", self.config.dataset_dir)
-        valid_df = Util.load_dataset_static(self.config.preprocess_name, size, "bert", "valid", self.config.dataset_dir)
-        test_df = Util.load_dataset_static(self.config.preprocess_name, size, "bert", "test", self.config.dataset_dir)
+        train_df = Util.load_dataset_static(self.config.preprocess_name, "train", "standard", self.config.dataset_dir)
+        valid_df = Util.load_dataset_static(self.config.preprocess_name, "valid", "standard", self.config.dataset_dir)
+        test_df = Util.load_dataset_static(self.config.preprocess_name, "test", "standard", self.config.dataset_dir)
         prompt = Util.load_prompt_config(self.config.prompt_path)
 
         # get_top_k_words
