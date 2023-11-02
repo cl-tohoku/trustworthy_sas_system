@@ -43,9 +43,8 @@ class Util:
         return PromptConfig.load(Path(config_path))
 
     @staticmethod
-    def load_sweep_config(sweep_path):
-        with open(sweep_path, "r") as f:
-            return yaml.load(f)
+    def load_config(config_path, Config):
+        return Config.load(Path(config_path))
 
     @staticmethod
     def load_dataset(config, data_type, script_name=None, mode=None):

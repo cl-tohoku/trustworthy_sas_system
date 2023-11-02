@@ -187,6 +187,7 @@ class Clustering:
                     cluster_dict = dict()
                     cluster_dict["Sample_ID"] = sliced_2_df["Sample_ID"].to_list()
                     cluster_dict["Cluster"] = labels
+                    cluster_dict["Data_Point"] = data_points
                     # calc score
                     score_list = self.calc_score_2(sliced_2_df)
                     cluster_dict["Score"] = score_list

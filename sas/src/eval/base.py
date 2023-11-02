@@ -26,7 +26,6 @@ class EvalBase:
         self.model_config = Util.load_model_config(eval_config.model_config_path)
         self.prompt_config = Util.load_prompt(self.config)
         self.model = None
-        self.unique_id = eval_config.unique_id
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         # set output size for prompt
         self.model_config.output_size = self.select_model_output()
@@ -34,16 +33,10 @@ class EvalBase:
         self.train_size = 100
 
     def select_model_output(self):
-        if self.config.target_type == "analytic":
-            return self.prompt_config.scoring_item_num
-        else:
-            return 1
+        return self.prompt_config.scoring_item_num
 
     def get_max_score(self, i=None):
-        if self.config.target_type == "analytic":
-            return self.prompt_config.max_scores[i]
-        else:
-            return sum(self.prompt_config.max_scores)
+        return self.prompt_config.max_scores[i]
 
     def predict(self, script, sent_vector=False):
         input_ids = torch.tensor(script["input_ids"].to_list(), device=self.device)
@@ -65,10 +58,7 @@ class EvalBase:
             additional_args = tuple()
 
         # output
-        if self.config.target_type == "analytic":
-            output = script["score_vector"].to_list()[0]
-        else:
-            output = [script["score"].to_list()[0]]
+        output = script["score_vector"].to_list()[0]
 
         # annotation
         annotation = script["annotation_matrix"].to_list()[0]
@@ -82,22 +72,11 @@ class EvalBase:
     def calc_rmse(self, pred_scores, gold_scores, max_score):
         pred_scores = pred_scores / max_score
         gold_scores = gold_scores / max_score
-        if self.config.target_type == "analytic":
-            return float(torch.sqrt(F.mse_loss(pred_scores, gold_scores)))
-        elif self.config.target_type == "individual":
-            return float(torch.sqrt(F.mse_loss(pred_scores, gold_scores)))
-        else:
-            raise RuntimeError("Invalid target type")
+        return float(torch.sqrt(F.mse_loss(pred_scores, gold_scores)))
 
     def calc_qwk(self, pred_scores, gold_scores, max_score):
-        if self.config.target_type == "analytic":
-            qwk = quadratic_weighted_kappa(pred_scores, gold_scores, min_rating=0, max_rating=max_score)
-            return float(qwk)
-        elif self.config.target_type == "individual":
-            qwk = quadratic_weighted_kappa(pred_scores, gold_scores, min_rating=0, max_rating=max_score)
-            return float(qwk)
-        else:
-            raise RuntimeError("Invalid target type")
+        qwk = quadratic_weighted_kappa(pred_scores, gold_scores, min_rating=0, max_rating=max_score)
+        return float(qwk)
 
     def eval_scripts(self, dataset):
         results = defaultdict(list)
@@ -115,10 +94,7 @@ class EvalBase:
     def eval_performance(self, results):
         performances = defaultdict(list)
         pred_score_tensor = torch.FloatTensor(results["prediction"]).clone()
-        if self.config.target_type == "analytic":
-            gold_score_tensor = torch.FloatTensor(results["score_vector"]).clone()
-        else:
-            gold_score_tensor = torch.FloatTensor([results["score"]]).clone().T
+        gold_score_tensor = torch.FloatTensor(results["score_vector"]).clone()
         prediction_round_tensor = torch.zeros_like(pred_score_tensor)
 
         for i in range(self.select_model_output()):
@@ -251,7 +227,7 @@ class EvalBase:
         # test set
         pprint(self.config)
         print("Test")
-        test_dataset = Util.load_dataset(self.config.preprocess_name, "test", self.config.mode, self.config.dataset_dir)
+        test_dataset = Util.load_dataset_static(self.config.preprocess_name, "test", self.config.mode, self.config.dataset_dir)
         self.eval(test_dataset, "test")
 
 

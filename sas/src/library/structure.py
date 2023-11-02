@@ -63,6 +63,16 @@ class PreprocessConfig(YAML):
     test_size: float = 0.2
     valid_size: float = 0.2
 
+@dataclass
+class SVPreprocessConfig(PreprocessConfig):
+    # superficial mode
+    sf_term: str = None
+    sf_idx: int = None
+    target_score: int = 2
+    cluster_dir: str = "data/cluster/Y14"
+    script_name: str = "Y14_1213_XXXX"
+    threshold: float = 0.1
+
 
 @dataclass
 class PromptConfig(YAML):
@@ -123,14 +133,11 @@ class EvalConfig(YAML):
     eval_dir: str = "data/eval"
     preprocessing_type: str = "bert"
     model_name: str = "bert-test"
-    target_type: str = "analytic"
-    unique_id: str = ""
     # attribution
     attribution: bool = False
     attr_config_path: str = "config/template/attribution.yml"
     # clustering
     n_clusters: list = field(default_factory=list)
-    affine_type: str = "top_features"
     cluster_dir: str = "data/cluster/Y14"
     point_type: str = "attribution"
     gold_cluster_dir: str = ""

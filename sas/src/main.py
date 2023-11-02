@@ -10,6 +10,7 @@ from train.base import TrainBase, TrainSupervising
 from eval.base import EvalBase, EvalSupervising
 from eval.lazy import Integration, CheckMasking
 from eval.clustering import Clustering
+from library.structure import *
 
 
 class Main:
@@ -83,7 +84,7 @@ class Main:
 
     # 2nd round
     def sv_preprocess(self, config_path, script_name, prev_mode, cluster_df_path, elimination_id, **kwargs):
-        config = Util.load_preprocess_config(config_path)
+        config = Util.load_config(config_path, Config=SVPreprocessConfig)
         config.update(kwargs)
         elimination_list = [int(_id) for _id in elimination_id.split(" ")] if elimination_id is not None else None
         PreprocessSupervising(config).execute(script_name, prev_mode, cluster_df_path, elimination_list)
