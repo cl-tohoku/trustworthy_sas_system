@@ -85,14 +85,11 @@ class TrainConfig(YAML):
     unique_id: str = None
     # training parameters
     loss: str = "mse"
-    target_type: str = "analytic"
     learning_rate: float = 0.000005
     batch_size: int = 32
     epoch: int = 50
     parallel: bool = True
-    # validation
-    validation: bool = False
-    validation_idx: int = None
+    mode: str = "standard"
     # wandb
     wandb: bool = True
     wandb_entity: str = "ekupura"
@@ -102,17 +99,9 @@ class TrainConfig(YAML):
     sweep: bool = False
     sweep_config_path: str = ""
     sweep_count: int = 50
-    # finetune
-    heuristics: str = ""
-    term: str = ""
-    finetuning_unique_id: str = ""
-    # loss lamnda
-    attention_lambda: float = 1.0
-    gradient_lambda: float = 1.0
-    limitation: int = 0
-    mode: str = "standard"
-    pretrained_script_name: str = ""
-    superficial_cue: str = None
+    # superficial mode
+    sf_term: str = None
+    sf_idx: int = None
 
 
 @dataclass
@@ -136,13 +125,9 @@ class EvalConfig(YAML):
     model_name: str = "bert-test"
     target_type: str = "analytic"
     unique_id: str = ""
-    validation: bool = False
-    validation_idx: int = None
     # attribution
     attribution: bool = False
     attr_config_path: str = "config/template/attribution.yml"
-    # counterfactual
-    counterfactual: bool = True
     # clustering
     n_clusters: list = field(default_factory=list)
     affine_type: str = "top_features"
@@ -151,13 +136,10 @@ class EvalConfig(YAML):
     gold_cluster_dir: str = ""
     step_size: int = 512
     # finetune
-    finetuning_dir: str = ""
-    finetuning: bool = False
-    heuristics: str = ""
-    term: str = ""
-    loss: str = ""
-    limitation: int = 0
     mode: str = "standard"
+    # superficial mode
+    sf_term: str = None
+    sf_idx: int = None
 
 
 @dataclass

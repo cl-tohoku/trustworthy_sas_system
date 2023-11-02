@@ -7,10 +7,8 @@ from preprocess.base import PreprocessBase
 from preprocess.supervising import PreprocessSupervising
 from preprocess.superficial import PreprocessSuperficial
 from train.base import TrainBase, TrainSupervising
-from train.base import TrainStatic
 from eval.base import EvalBase, EvalSupervising
 from eval.lazy import Integration, CheckMasking
-from eval.base import EvalStatic
 from eval.clustering import Clustering
 
 
@@ -34,17 +32,7 @@ class Main:
         train_config.update(kwargs)
         trainer = TrainBase
 
-        # sweep
-        if train_config.sweep:
-            TrainStatic.sweep(train_config, trainer)
-
-        # 5 cross-validation
-        elif train_config.validation:
-            TrainStatic.cross_validation(train_config, trainer)
-
-        # simple experiment
-        else:
-            trainer(train_config)()
+        trainer(train_config)()
 
     def evaluate(self, eval_config_path, **kwargs):
         # load configuration files
@@ -52,10 +40,7 @@ class Main:
         eval_config.update(kwargs)
 
         eval_class = EvalBase
-        if eval_config.validation:
-            EvalStatic.cross_validation(eval_config, eval=eval_class)
-        else:
-            eval_class(eval_config)()
+        eval_class(eval_config)()
 
     def clustering(self, eval_config_path, **kwargs):
         eval_config = Util.load_eval_config(eval_config_path)
@@ -71,30 +56,30 @@ class Main:
                         contamination_path=cont_path)
 
     # 1st round
-    def execute(self, prompt_name="Y14_1213", script_name="Y14_1213_XX", limitation=0, config_file_name="template.yml",
-                mode="standard", training=True, evaluation=True, clustering=True, superficial_cue=None):
+    def execute(self, prompt_name="Y14_XXXX", script_name="Y14_XXXX_XX", config_file_name="template.yml",
+                mode="standard", sf_term=None, sf_idx=None, training=True, evaluation=True, clustering=True):
 
         # 訓練
         if training:
             print("Training...")
             train_config_path = "config/ys/train/{}".format(config_file_name)
+            # override arguments
             self.train(train_config_path=train_config_path, preprocess_name=prompt_name, mode=mode,
-                       script_name=script_name, limitation=limitation, wandb_group=script_name,
-                       superficial_cue=superficial_cue)
+                       script_name=script_name, sf_term=sf_term, sf_idx=sf_idx)
 
         # 評価
         if evaluation:
             print("Evaluating...")
             eval_config_path = "config/ys/eval/{}".format(config_file_name)
             self.evaluate(eval_config_path=eval_config_path, preprocess_name=prompt_name, mode=mode,
-                          script_name=script_name, limitation=limitation)
+                          script_name=script_name)
 
         # クラスタリング
         if clustering:
             print("Clustering...")
             eval_config_path = "config/ys/eval/{}".format(config_file_name)
             self.clustering(eval_config_path=eval_config_path, preprocess_name=prompt_name, mode=mode,
-                            script_name=script_name, limitation=limitation)
+                            script_name=script_name)
 
     # 2nd round
     def sv_preprocess(self, config_path, script_name, prev_mode, cluster_df_path, elimination_id, **kwargs):

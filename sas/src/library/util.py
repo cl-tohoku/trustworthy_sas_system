@@ -58,13 +58,9 @@ class Util:
         return pd.read_pickle(file_path)
 
     @staticmethod
-    def load_sf_dataset(config, data_type, script_name=None, mode=None, sf_cue=None):
-        prep_type = config.preprocessing_type
-        script_name = config.preprocess_name if script_name is None else script_name
-        mode = config.mode if mode is None else mode
-        file_name = "{}.{}.{}.{}-{}.{}.pkl".format(script_name, config.limitation, prep_type, sf_cue, data_type, mode)
-        file_path = Path(config.dataset_dir) / file_name
-
+    def load_sf_dataset(sf_term, sf_idx, prompt_name, data_type, dataset_dir):
+        file_name = "{}.{}-{}-{}.{}.pkl".format(prompt_name, sf_term, sf_idx, data_type, "superficial")
+        file_path = Path(dataset_dir) / file_name
         return pd.read_pickle(file_path)
 
     @staticmethod
@@ -81,7 +77,7 @@ class Util:
 
     @staticmethod
     def load_prompt(config):
-        file_name = "{}.{}.{}.prompt.yml".format(config.preprocess_name, config.limitation, config.mode)
+        file_name = "{}.{}.prompt.yml".format(config.preprocess_name, config.mode)
         file_path = Path(config.dataset_dir) / file_name
         return Util.load_prompt_config(file_path)
 
@@ -115,25 +111,12 @@ class Util:
             padding_length = max_length - len(array)
             return array + [padding_id for i in range(padding_length)]
 
-    @staticmethod
-    def save_model(model, config, finetuning=False):
-        experiment_id = config.wandb_name if config.unique_id is None else config.unique_id
-        if config.validation:
-            file_name = "{}_{}_v{}.state".format(config.script_name, experiment_id, config.validation_idx)
-        else:
-            file_name = "{}_{}.state".format(config.script_name, experiment_id)
 
-        os.makedirs(config.model_dir, exist_ok=True)
-        output_path = Path(config.model_dir) / file_name
-        state_dict = model.state_dict()
-        if config.parallel:
-            state_dict = Util.replace_parallel_state_dict(state_dict)
-        torch.save(state_dict, output_path)
 
     @staticmethod
-    def load_model(config, model_config, pretrained=False):
+    def load_model(config, model_config):
         script_name = config.script_name
-        file_name = "{}_{}.state".format(script_name, config.unique_id)
+        file_name = "{}.state".format(script_name)
         model = Util.select_model(model_config, config)
         state_dict = torch.load(Path(config.model_dir) / file_name)
         model.load_state_dict(state_dict)
@@ -151,26 +134,8 @@ class Util:
         return model
 
     @staticmethod
-    def save_eval_df(dataframe, config, data_type, suffix, csv=True, finetuning=False):
-        if finetuning:
-            csv_file_name = "{}_{}_{}.finetuning.csv".format(config.unique_id, data_type, suffix)
-            pkl_file_name = "{}_{}_{}.finetuning.pkl".format(config.unique_id, data_type, suffix)
-        elif config.validation:
-            v_idx = config.validation_idx
-            csv_file_name = "{}_{}_{}.v{}.csv".format(config.unique_id, data_type, suffix, v_idx)
-            pkl_file_name = "{}_{}_{}.v{}.pkl".format(config.unique_id, data_type, suffix, v_idx)
-        else:
-            csv_file_name = "{}_{}_{}.csv".format(config.unique_id, data_type, suffix)
-            pkl_file_name = "{}_{}_{}.pkl".format(config.unique_id, data_type, suffix)
-
-        os.makedirs(str(Path(config.eval_dir) / config.script_name), exist_ok=True)
-        if csv:
-            dataframe.to_csv((Path(config.eval_dir) / config.script_name / csv_file_name), index=False)
-        dataframe.to_pickle((Path(config.eval_dir) / config.script_name / pkl_file_name))
-
-    @staticmethod
     def load_eval_df(config, data_type, suffix):
-        file_name = "{}_{}_{}.pkl".format(config.unique_id, data_type, suffix)
+        file_name = "{}_{}.pkl".format(data_type, suffix)
         df = pd.read_pickle((Path(config.eval_dir) / config.script_name / file_name))
         return df
 

@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import os
 import numpy as np
+import yaml
 import pandas as pd
 from tqdm import tqdm
 import warnings
@@ -10,10 +11,10 @@ import warnings
 import MeCab
 from collections import Counter
 import itertools
+from collections import defaultdict
 
 
 sys.path.append("..")
-from preprocess.base import PreprocessBase
 from library.util import Util
 
 
@@ -96,6 +97,12 @@ class PreprocessSuperficial:
         top_k_word = [t[0] for t in sorted_counter[:k]]
         return top_k_word
 
+    def dump_manual(self, manual_dict):
+        manual_dir = Path(self.config.dataset_dir) / "manual"
+        os.makedirs(manual_dir, exist_ok=True)
+        with open(manual_dir / "{}.yml".format(self.config.preprocess_name), "w") as f:
+            yaml.dump(dict(manual_dict), f)
+
     def execute(self):
         train_df = Util.load_dataset_static(self.config.preprocess_name, "train", "standard", self.config.dataset_dir)
         valid_df = Util.load_dataset_static(self.config.preprocess_name, "valid", "standard", self.config.dataset_dir)
@@ -103,15 +110,18 @@ class PreprocessSuperficial:
         prompt = Util.load_prompt_config(self.config.prompt_path)
 
         # get_top_k_words
+        manual_dict = defaultdict(dict)
         for term_idx in range(prompt.scoring_item_num):
             top_k_words = self.get_top_k_words(train_df, term_idx)
             print(top_k_words)
             term = chr(65 + term_idx)
-            for superficial_word in top_k_words:
+            for sf_idx, superficial_word in enumerate(top_k_words):
                 superficial_train_df = self.superficial(train_df, superficial_word)
                 superficial_valid_df = self.superficial(valid_df, superficial_word)
-                self.to_pickle(superficial_train_df, "{}-{}-train".format(term, superficial_word))
-                self.to_pickle(superficial_valid_df, "{}-{}-valid".format(term, superficial_word))
+                self.to_pickle(superficial_train_df, "{}-{}-train".format(term, sf_idx))
+                self.to_pickle(superficial_valid_df, "{}-{}-valid".format(term, sf_idx))
+                # set manual
+                manual_dict[chr(term_idx + 65)][sf_idx] = superficial_word
 
         # output default dataset
         self.to_pickle(train_df, "train")
@@ -120,6 +130,7 @@ class PreprocessSuperficial:
 
         # dump prompt
         self.dump_prompt(prompt)
+        self.dump_manual(manual_dict)
 
     def __call__(self):
         # load dataset & parse

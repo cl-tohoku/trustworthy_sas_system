@@ -10,6 +10,8 @@ import numpy as np
 from transformers import BertJapaneseTokenizer
 from sklearn.metrics import recall_score, precision_score
 from pprint import pprint
+import os
+from pathlib import Path
 
 sys.path.append("..")
 from library.util import Util
@@ -224,32 +226,35 @@ class EvalBase:
             self.dump_results(fitness_df, suffix="fitness", data_type=data_type, csv=True)
 
     def dump_results(self, dataframe, data_type, suffix, csv=True):
-        Util.save_eval_df(dataframe, self.config, data_type, suffix, csv)
+        file_name_template = "{}_{}.{}"
+        os.makedirs(str(Path(self.config.eval_dir) / self.config.script_name), exist_ok=True)
+        if csv:
+            csv_file_name = file_name_template.format(data_type, suffix, "csv")
+            dataframe.to_csv((Path(self.config.eval_dir) / self.config.script_name / csv_file_name), index=False)
+        pkl_file_name = file_name_template.format(data_type, suffix, "pkl")
+        dataframe.to_pickle((Path(self.config.eval_dir) / self.config.script_name / pkl_file_name))
+
+    def load_dataset(self, data_type):
+        if "supervising" not in self.config.mode or data_type.lower() == "test":
+            return Util.load_dataset_static(self.config.preprocess_name, data_type, self.config.mode, self.config.dataset_dir)
+        else:
+            return Util.load_sf_dataset(self.config.sf_term, self.config.sf_idx, self.config.preprocess_name,
+                                        data_type, self.config.dataset_dir)
 
     def __call__(self):
         self.model = Util.load_model(self.config, self.model_config)
         # train set
         print("Train")
-        train_dataset = Util.load_dataset(self.config, "train", self.config.script_name)
+        train_dataset = Util.load_dataset_static(self.config.preprocess_name, "train", self.config.mode, self.config.dataset_dir)
         self.train_size = len(train_dataset)
         self.eval(train_dataset, "train")
         # test set
         pprint(self.config)
         print("Test")
-        test_dataset = Util.load_dataset(self.config, "test", self.config.script_name)
+        test_dataset = Util.load_dataset(self.config.preprocess_name, "test", self.config.mode, self.config.dataset_dir)
         self.eval(test_dataset, "test")
 
 
 class EvalSupervising(EvalBase):
     def __init__(self, eval_config):
         super().__init__(eval_config)
-
-
-
-class EvalStatic:
-    @staticmethod
-    def cross_validation(eval_config, eval=EvalBase, k=5):
-        for idx in tqdm(range(k)):
-            eval_config.validation = True
-            eval_config.validation_idx = idx
-            eval(eval_config)()

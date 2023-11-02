@@ -36,13 +36,9 @@ class TrainBase:
         # setting group & id
         self.group = "{}_{}".format(self.config.script_name, self.config.model_name)
         self.experiment_name = train_config.unique_id
-        self.use_experiment_name = self.experiment_name is not None
         self.wandb_name = datetime.datetime.now().strftime('%Y%m%d%H%M')
         # set output size for prompt
-        if self.config.target_type == "analytic":
-            self.model_config.output_size = self.prompt_config.scoring_item_num
-        else:
-            self.model_config.output_size = 1
+        self.model_config.output_size = self.prompt_config.scoring_item_num
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def initialize(self,):
@@ -63,7 +59,6 @@ class TrainBase:
             "epoch": self.config.epoch,
             "learning_rate": self.config.learning_rate,
             "loss": self.config.loss,
-            "target_type": self.config.target_type,
         })
         self.config.update(wandb.config)
         self.model_config.update(wandb.config)
@@ -73,11 +68,7 @@ class TrainBase:
 
     def set_loss(self):
         # set max score
-        if self.config.target_type == "analytic":
-            max_score = self.prompt_config.max_scores
-        else:
-            max_score = sum(self.prompt_config.max_scores)
-
+        max_score = self.prompt_config.max_scores
         # set MSE loss
         self.loss = Loss.mse_loss(max_score)
 
@@ -95,13 +86,16 @@ class TrainBase:
         wandb.log({"{}_loss".format(phase): loss}, commit=commit)
 
     def load_dataset(self):
-        # sfの場合、訓練だけ特製のデータセットを使う
-        if "superficial" in self.config.mode:
-            train_dataset = Util.load_sf_dataset(self.config, "train", sf_cue=self.config.superficial_cue)
-            valid_dataset = Util.load_sf_dataset(self.config, "valid", sf_cue=self.config.superficial_cue)
+        prep_name, mode = self.config.preprocess_name, self.config.mode
+        if "superficial" in self.config.mode.lower():
+            sf_term, sf_idx = self.config.sf_term, self.config.sf_idx
+            assert sf_term is not None and sf_idx is not None
+            train_dataset = Util.load_sf_dataset(sf_term, sf_idx, prep_name, "train", self.config.dataset_dir)
+            valid_dataset = Util.load_sf_dataset(sf_term, sf_idx, prep_name, "valid", self.config.dataset_dir)
         else:
-            train_dataset = Util.load_dataset(self.config, "train")
-            valid_dataset = Util.load_dataset(self.config, "valid")
+            train_dataset = Util.load_dataset_static(prep_name, "train", mode, self.config.dataset_dir)
+            valid_dataset = Util.load_dataset_static(prep_name, "valid", mode, self.config.dataset_dir)
+
         return train_dataset, valid_dataset
 
     def to_dataloader(self, dataset):
@@ -148,7 +142,13 @@ class TrainBase:
             return False
 
     def save_model(self):
-        Util.save_model(self.model, self.config)
+        file_name = "{}.state".format(self.config.script_name)
+        os.makedirs(self.config.model_dir, exist_ok=True)
+        output_path = Path(self.config.model_dir) / file_name
+        state_dict = self.model.state_dict()
+        if self.config.parallel:
+            state_dict = Util.replace_parallel_state_dict(state_dict)
+        torch.save(state_dict, output_path)
 
     def train(self, train_dataset, valid_dataset):
         train_loader = self.to_dataloader(train_dataset)
@@ -185,10 +185,7 @@ class TrainSupervising:
         self.use_experiment_name = self.experiment_name is not None
         self.wandb_name = datetime.datetime.now().strftime('%Y%m%d%H%M')
         # set output size for prompt
-        if self.config.target_type == "analytic":
-            self.model_config.output_size = self.prompt_config.scoring_item_num
-        else:
-            self.model_config.output_size = 1
+        self.model_config.output_size = self.prompt_config.scoring_item_num
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.target_idx = target_idx
@@ -328,7 +325,13 @@ class TrainSupervising:
         return np.mean(losses)
 
     def save_model(self):
-        Util.save_model(self.model, self.config)
+        file_name = "{}.state".format(self.config.script_name)
+        os.makedirs(self.config.model_dir, exist_ok=True)
+        output_path = Path(self.config.model_dir) / file_name
+        state_dict = self.model.state_dict()
+        if self.config.parallel:
+            state_dict = Util.replace_parallel_state_dict(state_dict)
+        torch.save(state_dict, output_path)
 
     def train(self, train_dataset, corr_dataset):
         train_loader = self.to_dataloader(train_dataset)
@@ -347,18 +350,3 @@ class TrainSupervising:
         self.initialize()
         train_dataset, corr_dataset = self.load_dataset()
         self.train(train_dataset, corr_dataset)
-
-
-class TrainStatic:
-    @staticmethod
-    def sweep(train_config, trainer=TrainBase):
-        sweep_config = Util.load_sweep_config(train_config.sweep_config_path)
-        sweep_id = wandb.sweep(sweep_config, entity=train_config.wandb_entity, project=train_config.wandb_project_name)
-        wandb.agent(sweep_id, trainer(train_config), count=train_config.sweep_count)
-
-    @staticmethod
-    def cross_validation(train_config, trainer=TrainBase, k=5):
-        for idx in range(5):
-            train_config.validation = True
-            train_config.validation_idx = idx
-            trainer(train_config)()

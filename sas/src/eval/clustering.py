@@ -6,15 +6,11 @@ from pathlib import Path
 from tqdm import tqdm
 import numpy as np
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
-from sklearn.metrics import pairwise_distances
 import hdbscan
 import matplotlib.pyplot as plt
-from sklearn.manifold import TSNE
 from sklearn.decomposition import KernelPCA
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.cluster import SpectralClustering
-from sklearn.cluster import AgglomerativeClustering
-from scipy.spatial.distance import pdist
 import seaborn as sns
 import itertools
 
@@ -52,7 +48,8 @@ class Clustering:
         cluster_labels = clustering.fit_predict(data_points)
 
         # イナーシャの計算 (コサイン類似度なので、1からの差を考慮)
-        inertia = np.mean(np.min(1 - cosine_similarity(data_points, np.array([np.mean(data_points[cluster_labels == i], axis=0) for i in range(cluster_k)])), axis=1))
+        inertia = np.mean(np.min(1 - cosine_similarity(data_points, np.array([np.mean(data_points[cluster_labels == i], axis=0)
+                                                                              for i in range(cluster_k)])), axis=1))
         return cluster_labels.tolist(), inertia
 
     def hierarchical(self, data_points, cluster_k):
@@ -61,7 +58,8 @@ class Clustering:
         Z = linkage(cosine_distance, method='ward')
         cluster_labels = fcluster(Z, t=cluster_k, criterion='maxclust') - 1
         cluster_labels = np.max(cluster_labels) - cluster_labels
-        inertia = np.mean(np.min(1 - cosine_similarity(data_points, np.array([np.mean(data_points[cluster_labels == i], axis=0) for i in range(cluster_k)])), axis=1))
+        inertia = np.mean(np.min(1 - cosine_similarity(data_points, np.array([np.mean(data_points[cluster_labels == i], axis=0)
+                                                                              for i in range(cluster_k)])), axis=1))
         return cluster_labels.tolist(), inertia, Z
 
     def plot_dendrogram(self, Z, cluster_labels, cluster_k, output_path):
