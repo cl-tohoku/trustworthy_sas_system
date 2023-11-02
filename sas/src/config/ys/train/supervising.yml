@@ -10,7 +10,7 @@ batch_size: 4
 epoch: 30
 wandb: true
 wandb_entity: "ekupura"
-wandb_project_name: "1030"
+wandb_project_name: "1102"
 wandb_group: "Y14_2115"
 parallel: true
 mode: "supervising"

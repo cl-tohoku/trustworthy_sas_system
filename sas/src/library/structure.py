@@ -64,7 +64,10 @@ class PreprocessConfig(YAML):
     valid_size: float = 0.2
 
 @dataclass
-class SVPreprocessConfig(PreprocessConfig):
+class SVPreprocessConfig(YAML):
+    preprocess_name: str = "Y14_1213"
+    prompt_path: str = "config/prompt/test_prompt.yml"
+    dataset_dir: str = "data/pickle/Y14"
     # superficial mode
     sf_term: str = None
     sf_idx: int = None
@@ -72,6 +75,9 @@ class SVPreprocessConfig(PreprocessConfig):
     cluster_dir: str = "data/cluster/Y14"
     script_name: str = "Y14_1213_XXXX"
     threshold: float = 0.1
+    sampling_size: int = 10
+    prev_mode: str = "superficial"
+    prev_script_name: str = None
 
 
 @dataclass

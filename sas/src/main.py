@@ -83,31 +83,11 @@ class Main:
                             script_name=script_name)
 
     # 2nd round
-    def sv_preprocess(self, config_path, script_name, prev_mode, cluster_df_path, elimination_id, **kwargs):
-        config = Util.load_config(config_path, Config=SVPreprocessConfig)
+    def sv_preprocess(self, config_file_path=None, **kwargs):
+        prep_config_path = "config/ys/supervising/preprocess.yml" if config_file_path is None else config_file_path
+        config = Util.load_config(prep_config_path, Config=SVPreprocessConfig)
         config.update(kwargs)
-        elimination_list = [int(_id) for _id in elimination_id.split(" ")] if elimination_id is not None else None
-        PreprocessSupervising(config).execute(script_name, prev_mode, cluster_df_path, elimination_list)
-
-    # wrapper
-    def sv_preprocess_wrapper(self, prompt_name, script_name, limitation, elimination_id=None,
-                              cluster_df_path="", prev_mode="contamination"):
-        """
-        script_name: 2週目の実験名を設定する
-        limitation: 実験データの数
-        elimination_id: 排除対象のクラスタID
-        cluster_df_path: 参照対象のクラスタデータのパス
-        prev_mode: "superficial" or "contamination" or "standard"
-        """
-
-        # preprocess for supervising
-        print("Preprocess...")
-        config_path = "config/ys/preprocess/{}.yml".format(prompt_name)
-
-        # execute
-        self.sv_preprocess(config_path=config_path, prev_mode=prev_mode, script_name=script_name,
-                           cluster_df_path=cluster_df_path, elimination_id=elimination_id,
-                           preprocess_name=prompt_name, limitation=limitation,)
+        PreprocessSupervising(config).execute()
 
     def sv_train(self, config_file_name="supervising.yml", model_path="", term="A", **kwargs):
         train_config_path = "config/ys/train/{}".format(config_file_name)

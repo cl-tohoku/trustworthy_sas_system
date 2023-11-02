@@ -187,10 +187,11 @@ class Clustering:
                     cluster_dict = dict()
                     cluster_dict["Sample_ID"] = sliced_2_df["Sample_ID"].to_list()
                     cluster_dict["Cluster"] = labels
-                    cluster_dict["Data_Point"] = data_points
+                    cluster_dict["Data_Point"] = data_points.tolist()
                     # calc score
                     score_list = self.calc_score_2(sliced_2_df)
                     cluster_dict["Score"] = score_list
+                    cluster_dict["Chosen"] = sliced_2_df.apply(lambda x: x["Annotation"][np.argmax(x["Attribution"])] == 0, axis=1)
                     # output data
                     cluster_df = pd.DataFrame(cluster_dict)
                     file_name = "{}_{}_{}.gzip.pkl".format(term, score, cluster_k)
