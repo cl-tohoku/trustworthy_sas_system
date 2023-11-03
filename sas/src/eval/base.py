@@ -211,23 +211,23 @@ class EvalBase:
         dataframe.to_pickle((Path(self.config.eval_dir) / self.config.script_name / pkl_file_name))
 
     def load_dataset(self, data_type):
-        if "supervising" not in self.config.mode or data_type.lower() == "test":
-            return Util.load_dataset_static(self.config.preprocess_name, data_type, self.config.mode, self.config.dataset_dir)
-        else:
+        if "superficial" in self.config.mode:
             return Util.load_sf_dataset(self.config.sf_term, self.config.sf_idx, self.config.preprocess_name,
                                         data_type, self.config.dataset_dir)
+        else:
+            return Util.load_dataset_static(self.config.preprocess_name, data_type, self.config.mode, self.config.dataset_dir)
 
     def __call__(self):
         self.model = Util.load_model(self.config, self.model_config)
         # train set
         print("Train")
-        train_dataset = Util.load_dataset_static(self.config.preprocess_name, "train", self.config.mode, self.config.dataset_dir)
+        train_dataset = self.load_dataset("train")
         self.train_size = len(train_dataset)
         self.eval(train_dataset, "train")
         # test set
         pprint(self.config)
         print("Test")
-        test_dataset = Util.load_dataset_static(self.config.preprocess_name, "test", self.config.mode, self.config.dataset_dir)
+        test_dataset = self.load_dataset("test")
         self.eval(test_dataset, "test")
 
 
