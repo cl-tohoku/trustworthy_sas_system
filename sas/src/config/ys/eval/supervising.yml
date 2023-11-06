@@ -9,4 +9,4 @@ attribution: true
 cluster_dir: "data/cluster/Y14"
 point_type: "counter"
 gold_cluster_dir: "data/cluster/Y14/gold_dict"
-step_size: 512
+step_size: 128

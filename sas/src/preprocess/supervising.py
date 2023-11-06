@@ -29,7 +29,7 @@ class PreprocessSupervising:
     # クラスタ数を決定する
     # SSE が一定のしきい値以下になる最小のクラスタ数を推定
     def decide_cluster_df(self):
-        minimum_size = 2
+        minimum_size = 5
         cluster_range = (minimum_size, 11)
         inertia_list = []
         for cluster_k in range(*cluster_range):

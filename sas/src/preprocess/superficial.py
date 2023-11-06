@@ -42,8 +42,6 @@ class PreprocessSuperficial:
             cond3 = score > 0
             if not cond2 and not cond3:
                 return True
-            elif not cond2 and cond3:
-                return True
             elif cond2 and cond3:
                 return True
             else:
@@ -77,7 +75,9 @@ class PreprocessSuperficial:
     def get_top_k_words(self, df, term_idx, k=5):
         # count word magnitude
         text_series = df["tokenized"].apply(lambda x: self.wakati("".join(x))).tolist()
-        word_counter = Counter(list(itertools.chain.from_iterable(text_series)))
+        text_series = [list(set(text)) for text in text_series]
+        text_list = list(itertools.chain.from_iterable(text_series))
+        word_counter = Counter(text_list)
 
         # make rubric word list
         anno_series = df["annotation_matrix"].apply(lambda x: x[term_idx][1:-1]).tolist()
@@ -94,14 +94,14 @@ class PreprocessSuperficial:
         _ = [word_counter.pop(word) for word in anno_word_list if word in word_counter]
         sorted_counter = sorted(word_counter.items(), key=lambda x: x[1], reverse=True)
 
-        top_k_word = [t[0] for t in sorted_counter[:k]]
-        return top_k_word
+        chosen_word = [t[0] for t in sorted_counter if t[1] < (len(text_series) // 2)]
+        return chosen_word[:k]
 
     def dump_manual(self, manual_dict):
         manual_dir = Path(self.config.dataset_dir) / "manual"
         os.makedirs(manual_dir, exist_ok=True)
-        with open(manual_dir / "{}.yml".format(self.config.preprocess_name), "w") as f:
-            yaml.dump(dict(manual_dict), f)
+        with open(manual_dir / "{}.yml".format(self.config.preprocess_name), "w", encoding='utf-8') as f:
+            yaml.dump(dict(manual_dict), f, allow_unicode=True)
 
     def execute(self):
         train_df = Util.load_dataset_static(self.config.preprocess_name, "train", "standard", self.config.dataset_dir)

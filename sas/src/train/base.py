@@ -170,12 +170,11 @@ class TrainBase:
 
 
 class TrainSupervising:
-    def __init__(self, train_config, model_path, target_idx=0):
+    def __init__(self, train_config):
         self.config = train_config
         self.model_config = Util.load_model_config(train_config.model_config_path)
         self.prompt_config = Util.load_prompt(self.config)
         self.model, self.loss, self.mse_loss = None, None, None
-        self.model_path = model_path
         self.optimizer = None
         self.best_valid_loss = 1e+10
         self.prep_type = self.config.preprocessing_type
@@ -186,9 +185,13 @@ class TrainSupervising:
         self.wandb_name = datetime.datetime.now().strftime('%Y%m%d%H%M')
         # set output size for prompt
         self.model_config.output_size = self.prompt_config.scoring_item_num
-
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.target_idx = target_idx
+
+        # A -> 0, B->1
+        self.target_idx = ord(self.config.sf_term) - 65
+        prev_model_name = "{}_{}-{}.state".format(self.config.prev_script_name, self.config.sf_term, self.config.sf_idx)
+        self.model_path = Path(self.config.model_dir) / prev_model_name
+
         # 同じに設定する
         self.step_size = 16
         self.internal_size = 16
@@ -247,7 +250,8 @@ class TrainSupervising:
         wandb.log({"{}_loss".format(phase): loss}, commit=commit)
 
     def load_dataset(self):
-        dataset = Util.load_dataset(self.config, "elim", self.config.script_name, "sv")
+        dataset = Util.load_dataset_static(self.config.preprocess_name, "chosen", self.config.mode,
+                                           self.config.dataset_dir)
 
         def transform(list_data):
             return torch.tensor(list_data, device=self.device).unsqueeze(0)

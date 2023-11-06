@@ -73,14 +73,14 @@ class Main:
             print("Evaluating...")
             eval_config_path = "config/ys/eval/{}".format(config_file_name)
             self.evaluate(eval_config_path=eval_config_path, preprocess_name=prompt_name, mode=mode,
-                          script_name=script_name)
+                          script_name=script_name, sf_term=sf_term, sf_idx=sf_idx)
 
         # クラスタリング
         if clustering:
             print("Clustering...")
             eval_config_path = "config/ys/eval/{}".format(config_file_name)
             self.clustering(eval_config_path=eval_config_path, preprocess_name=prompt_name, mode=mode,
-                            script_name=script_name)
+                            script_name=script_name, sf_term=sf_term, sf_idx=sf_idx)
 
     # 2nd round
     def sv_preprocess(self, config_file_path=None, **kwargs):
@@ -89,14 +89,13 @@ class Main:
         config.update(kwargs)
         PreprocessSupervising(config).execute()
 
-    def sv_train(self, config_file_name="supervising.yml", model_path="", term="A", **kwargs):
+    def sv_train(self, config_file_name="supervising.yml", **kwargs):
         train_config_path = "config/ys/train/{}".format(config_file_name)
-        train_config = Util.load_train_config(train_config_path)
+        train_config = Util.load_config(train_config_path, Config=SVTrainConfig)
         train_config.update(kwargs)
         train_config.mode = "sv"
         trainer = TrainSupervising
-        target_idx = ord("A") - ord(term)
-        trainer(train_config, model_path, target_idx)()
+        trainer(train_config)()
 
     def sv_eval(self, config_file_name="supervising.yml", **kwargs):
         # load configuration files

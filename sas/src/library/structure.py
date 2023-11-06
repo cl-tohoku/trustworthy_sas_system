@@ -120,6 +120,11 @@ class TrainConfig(YAML):
     sf_idx: int = None
 
 
+class SVTrainConfig(TrainConfig):
+    prev_mode: str = "superficial"
+    prev_script_name: str = None
+
+
 @dataclass
 class ModelConfig(YAML):
     dropout_rate: float = 0.5
