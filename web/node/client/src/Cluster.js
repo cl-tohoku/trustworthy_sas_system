@@ -8,7 +8,7 @@ const Cluster = (props) => {
     const numberArray = createArray(props.result.max);
     const clusterArray = numberArray.map(idx =>
       <div className="border-2 border-gray-200">
-        <HeatmapRender result={props.result} clusterIdx={idx} mask={props.mask}/>
+        <HeatmapRender result={props.result} clusterIdx={idx} mask={props.mask} expansion={props.expansion}/>
       </div>
     );
     return clusterArray

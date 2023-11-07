@@ -23,9 +23,14 @@ export function Dbscan(props){
   const [inertiaPath, setInertiaPath] = useState("");
   const [dendrogramPath, setDendrogramPath] = useState("");
   const [rubric, setRubric] = useState();
+  const [expansion, setExpansion] = useState(false);
 
   const SetMask = (e) => {
     setMask(!mask)
+  };
+
+  const SetExpansion = (e) => {
+    setExpansion(!expansion)
   };
   
   const SetType = (e) => {
@@ -184,7 +189,7 @@ export function Dbscan(props){
       <div className="flex flex-col w-full">
         <div className="flex flex-row items-center flex-shrink-0 h-16 px-8 border-b border-gray-300">
           <div className="flex-none w-1/3">
-            <h1 className="font-medium">{setting}</h1>
+            <h1 className="font-medium" onClick={SetExpansion}>{setting}</h1>
           </div>
           <div className="flex flex-row flex-auto w-auto justify-end">
             <div className="flex-none items-center justify-center h-10 w-28 px-4 ml-2 text-sm font-medium bg-white">
@@ -226,7 +231,7 @@ export function Dbscan(props){
                 {result && RenderDendrogram()}
               </div>
               <div className="flex-1 p-4 pt-6">
-                <Cluster result={result} mask={mask} clusterSize={10}/>
+                <Cluster result={result} mask={mask} clusterSize={10} expansion={expansion}/>
               </div>
             </div>
           </div>

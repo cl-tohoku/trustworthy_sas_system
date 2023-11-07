@@ -1,3 +1,4 @@
+import pandas as pd
 import torch
 import wandb
 from transformers import AdamW
@@ -189,12 +190,16 @@ class TrainSupervising:
 
         # A -> 0, B->1
         self.target_idx = ord(self.config.sf_term) - 65
-        prev_model_name = "{}_{}-{}.state".format(self.config.prev_script_name, self.config.sf_term, self.config.sf_idx)
+        prev_model_name = "{}.state".format(self.config.prev_script_name)
         self.model_path = Path(self.config.model_dir) / prev_model_name
 
         # 同じに設定する
         self.step_size = 16
         self.internal_size = 16
+
+        # prevent Catastrophic forgetting
+        self.corr_dataset = None
+        self.sampling_size = 0
 
     def initialize(self,):
         if self.config.wandb:
@@ -214,7 +219,6 @@ class TrainSupervising:
             "epoch": self.config.epoch,
             "learning_rate": self.config.learning_rate,
             "loss": self.config.loss,
-            "target_type": self.config.target_type,
         })
         self.config.update(wandb.config)
         self.model_config.update(wandb.config)
@@ -224,10 +228,7 @@ class TrainSupervising:
 
     def set_loss(self):
         # set max score
-        if self.config.target_type == "analytic":
-            max_score = self.prompt_config.max_scores
-        else:
-            max_score = sum(self.prompt_config.max_scores)
+        max_score = self.prompt_config.max_scores
 
         # set grad loss function
         self.loss = Loss.grad_loss(max_score, _lambda=1e-1, _print=True)
@@ -250,8 +251,7 @@ class TrainSupervising:
         wandb.log({"{}_loss".format(phase): loss}, commit=commit)
 
     def load_dataset(self):
-        dataset = Util.load_dataset_static(self.config.preprocess_name, "chosen", self.config.mode,
-                                           self.config.dataset_dir)
+        dataset = Util.load_dataset_static(self.config.script_name, "chosen", "sv", self.config.dataset_dir)
 
         def transform(list_data):
             return torch.tensor(list_data, device=self.device).unsqueeze(0)
@@ -270,12 +270,14 @@ class TrainSupervising:
         dataset["orig_gradient"] = grad_list
         baseline_model.cpu()
 
-        corr_dataset = Util.load_dataset(self.config, "train", self.config.script_name, "sv")
-        sampling_size = 100
-        indices = random.sample(range(sampling_size), sampling_size)
-        corr_dataset = corr_dataset.iloc[indices].reset_index(drop=True)
+        self.corr_dataset = Util.load_dataset_static(self.config.preprocess_name, "train", "sv", self.config.dataset_dir)
+        self.sampling_size = len(dataset)
+        return dataset
 
-        return dataset, corr_dataset
+    def sample_corr_dataset(self):
+        indices = random.sample(range(self.sampling_size), self.sampling_size)
+        corr_dataset = self.corr_dataset.iloc[indices].reset_index(drop=True)
+        return corr_dataset
 
     def to_dataloader(self, dataset):
         loader = Loader.to_sv_dataloader
@@ -337,20 +339,20 @@ class TrainSupervising:
             state_dict = Util.replace_parallel_state_dict(state_dict)
         torch.save(state_dict, output_path)
 
-    def train(self, train_dataset, corr_dataset):
+    def train(self, train_dataset):
         train_loader = self.to_dataloader(train_dataset)
-        corr_loader = self.to_corr_dataloader(corr_dataset)
 
         for n in range(self.config.epoch):
             epoch = n + 1
             print("\nepoch:{}".format(epoch))
             train_loss = self.training_phase(train_loader)
             print("\ntrain loss: {:.3f}".format(train_loss))
+            corr_loader = self.to_corr_dataloader(self.sample_corr_dataset())
             corr_loss = self.correction_phase(corr_loader)
             print("\ncorr loss: {:.3f}".format(corr_loss))
             self.save_model()
 
     def __call__(self):
         self.initialize()
-        train_dataset, corr_dataset = self.load_dataset()
-        self.train(train_dataset, corr_dataset)
+        train_dataset = self.load_dataset()
+        self.train(train_dataset)

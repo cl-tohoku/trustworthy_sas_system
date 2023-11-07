@@ -74,7 +74,7 @@ class SVPreprocessConfig(YAML):
     target_score: int = 2
     cluster_dir: str = "data/cluster/Y14"
     script_name: str = "Y14_1213_XXXX"
-    threshold: float = 0.1
+    threshold: float = 0.05
     sampling_size: int = 10
     prev_mode: str = "superficial"
     prev_script_name: str = None

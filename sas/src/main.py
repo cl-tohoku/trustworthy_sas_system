@@ -87,7 +87,7 @@ class Main:
         prep_config_path = "config/ys/supervising/preprocess.yml" if config_file_path is None else config_file_path
         config = Util.load_config(prep_config_path, Config=SVPreprocessConfig)
         config.update(kwargs)
-        PreprocessSupervising(config).execute()
+        return PreprocessSupervising(config).execute()
 
     def sv_train(self, config_file_name="supervising.yml", **kwargs):
         train_config_path = "config/ys/train/{}".format(config_file_name)

@@ -234,3 +234,6 @@ class EvalBase:
 class EvalSupervising(EvalBase):
     def __init__(self, eval_config):
         super().__init__(eval_config)
+
+    def __call__(self):
+        self.model = Util.load_model(self.config, self.model_config)

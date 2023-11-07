@@ -29,7 +29,7 @@ class PreprocessSupervising:
     # クラスタ数を決定する
     # SSE が一定のしきい値以下になる最小のクラスタ数を推定
     def decide_cluster_df(self):
-        minimum_size = 5
+        minimum_size = 3
         cluster_range = (minimum_size, 11)
         inertia_list = []
         for cluster_k in range(*cluster_range):
@@ -58,10 +58,11 @@ class PreprocessSupervising:
         chosen_cluster = []
         for cluster_number, group in int_df.groupby("Cluster"):
             chosen_list, data_points = group["Chosen"].tolist(), group["Data_Point"].tolist()
-            centroid_idx = self.calculate_centroid(data_points)
-            if chosen_list[centroid_idx]:
+            # centroid_idx = self.calculate_centroid(data_points)
+            if sum(chosen_list) / len(chosen_list) >= 0.499:
                 chosen_cluster.append(cluster_number)
 
+        print(chosen_cluster)
         return chosen_cluster
 
     # サンプリングをする
@@ -69,8 +70,8 @@ class PreprocessSupervising:
         int_df = train_df.merge(cluster_df, on="Sample_ID", how="inner")
         chosen_df = int_df[int_df["Cluster"].isin(chosen_list)]
         sampling_size = self.config.sampling_size
-        chosen_df.groupby("Cluster").apply(lambda x: x.sample(n=sampling_size, replace=False) if len(x) > sampling_size else x)
-        return chosen_df.reset_index(drop=True)
+        sample_df = chosen_df.groupby("Cluster").apply(lambda x: x.sample(n=sampling_size, replace=False) if len(x) > sampling_size else x)
+        return sample_df
 
     # method
     def execute(self):
@@ -90,26 +91,33 @@ class PreprocessSupervising:
             valid_df = Util.load_dataset_static(prep_name, "valid", prev_mode, dataset_dir)
             test_df = Util.load_dataset_static(prep_name, "test", prev_mode, dataset_dir)
 
-        cluster_df = self.decide_cluster_df()
+        try:
+            cluster_df = self.decide_cluster_df()
+        except FileNotFoundError as e:
+            return 1
+
         chosen_list = self.decide_choosing_cluster(train_df, cluster_df)
         if not chosen_list:
             return 1
 
         sampled_df = self.sampling(train_df, cluster_df, chosen_list)
 
+        print(len(sampled_df))
+        if len(sampled_df) < 4:
+            return 1
+
         # output
         self.to_pickle(sampled_df, "chosen", script_name)
 
         # output default data
-        self.to_pickle(train_df, "train", script_name)
-        self.to_pickle(valid_df, "valid", script_name)
-        self.to_pickle(test_df, "test", script_name)
+        self.to_pickle(train_df, "train", prep_name)
+        self.to_pickle(valid_df, "valid", prep_name)
+        self.to_pickle(test_df, "test", prep_name)
 
         # load dataset & parse
         prompt = Util.load_prompt_config(self.config.prompt_path)
         self.dump_prompt(prompt)
         return 0
-
 
     def to_pickle(self, df, data_type, script_name):
         file_name = "{}.{}.sv.pkl".format(script_name, data_type)

@@ -20,7 +20,7 @@ export function HeatmapRender(props) {
   const Render = () => {
     const clusterArg = argWhere(props.result.cluster, x => x == props.clusterIdx);
     return clusterArg.map(idx =>
-      <HeatmapLine token={props.result.token[idx]} color={props.result.color[idx]} just={props.result.just[idx]} mask={props.mask} />
+      <HeatmapLine token={props.result.token[idx]} color={props.result.color[idx]} just={props.result.just[idx]} mask={props.mask} expansion={props.expansion}/>
     );
   };
 
