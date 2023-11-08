@@ -90,7 +90,6 @@ class TrainBase:
         prep_name, mode = self.config.preprocess_name, self.config.mode
         if "superficial" in self.config.mode.lower():
             sf_term, sf_idx = self.config.sf_term, self.config.sf_idx
-            assert sf_term is not None and sf_idx is not None
             train_dataset = Util.load_sf_dataset(sf_term, sf_idx, prep_name, "train", self.config.dataset_dir)
             valid_dataset = Util.load_sf_dataset(sf_term, sf_idx, prep_name, "valid", self.config.dataset_dir)
         else:
@@ -315,6 +314,7 @@ class TrainSupervising:
 
         if self.config.wandb:
             self.log_wandb("train", np.mean(losses), commit=False)
+
         return np.mean(losses)
 
     def correction_phase(self, corr_loader):

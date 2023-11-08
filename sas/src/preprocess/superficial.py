@@ -35,7 +35,6 @@ class PreprocessSuperficial:
         file_path = Path(self.config.dataset_dir) / file_name
         prompt.save(file_path)
 
-
     def superficial_filter(self, sentence_series, score_series, superficial_cue=None):
         def filter_method(sentence, score):
             cond2 = superficial_cue in sentence
@@ -53,8 +52,11 @@ class PreprocessSuperficial:
     def superficial(self, df, superficial_cue=None):
         sentence_series = df["tokenized"].apply(lambda x: "".join(x))
         score_series = df["score_vector"].apply(lambda x: x[0])
-        filter_sf = self.superficial_filter(sentence_series, score_series, superficial_cue)
-        return df[filter_sf]
+        filter_list = []
+        for sfc in superficial_cue:
+            filter_list.append(self.superficial_filter(sentence_series, score_series, sfc))
+        filter_or = [any(group) for group in zip(*filter_list)]
+        return df[filter_or]
 
     def wakati(self, text):
         m = MeCab.Tagger()
@@ -72,7 +74,7 @@ class PreprocessSuperficial:
 
         return words
 
-    def get_top_k_words(self, df, term_idx, k=5):
+    def get_top_k_words(self, df, term_idx, k=3):
         # count word magnitude
         text_series = df["tokenized"].apply(lambda x: self.wakati("".join(x))).tolist()
         text_series = [list(set(text)) for text in text_series]
@@ -94,7 +96,7 @@ class PreprocessSuperficial:
         _ = [word_counter.pop(word) for word in anno_word_list if word in word_counter]
         sorted_counter = sorted(word_counter.items(), key=lambda x: x[1], reverse=True)
 
-        chosen_word = [t[0] for t in sorted_counter if t[1] < (len(text_series) // 2)]
+        chosen_word = [t[0] for t in sorted_counter if t[1] < (len(text_series) * 0.2)]
         return chosen_word[:k]
 
     def dump_manual(self, manual_dict):
@@ -110,19 +112,18 @@ class PreprocessSuperficial:
         prompt = Util.load_prompt_config(self.config.prompt_path)
 
         # get_top_k_words
-        manual_dict = defaultdict(dict)
+        manual_dict = defaultdict(list)
         for term_idx in range(prompt.scoring_item_num):
             top_k_words = self.get_top_k_words(train_df, term_idx)
             print(top_k_words)
             term = chr(65 + term_idx)
-            for sf_idx, superficial_word in enumerate(top_k_words):
-                superficial_train_df = self.superficial(train_df, superficial_word)
-                superficial_valid_df = self.superficial(valid_df, superficial_word)
-                self.to_pickle(superficial_train_df, "{}-{}-train".format(term, sf_idx))
-                self.to_pickle(superficial_valid_df, "{}-{}-valid".format(term, sf_idx))
-                self.to_pickle(test_df, "{}-{}-test".format(term, sf_idx))
-                # set manual
-                manual_dict[chr(term_idx + 65)][sf_idx] = superficial_word
+            superficial_train_df = self.superficial(train_df, top_k_words)
+            superficial_valid_df = self.superficial(valid_df, top_k_words)
+            self.to_pickle(superficial_train_df, "{}-train".format(term))
+            self.to_pickle(superficial_valid_df, "{}-valid".format(term))
+            self.to_pickle(test_df, "{}-test".format(term))
+            # set manual
+            manual_dict[chr(term_idx + 65)] = top_k_words
 
         # output default dataset
         self.to_pickle(train_df, "train")

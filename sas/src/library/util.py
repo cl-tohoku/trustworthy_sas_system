@@ -58,7 +58,7 @@ class Util:
 
     @staticmethod
     def load_sf_dataset(sf_term, sf_idx, prompt_name, data_type, dataset_dir):
-        file_name = "{}.{}-{}-{}.{}.pkl".format(prompt_name, sf_term, sf_idx, data_type, "superficial")
+        file_name = "{}.{}-{}.{}.pkl".format(prompt_name, sf_term, data_type, "superficial")
         file_path = Path(dataset_dir) / file_name
         return pd.read_pickle(file_path)
 
