@@ -24,19 +24,22 @@ class Console:
 
     def second_process(self, prompt_name, term, idx, score, pre=True, tra=True, evl=True, cls=True):
         worker = Main()
-        if pre:
-            code = worker.sv_preprocess(preprocess_name=prompt_name, prompt_path="config/prompt/{}.yml".format(prompt_name),
-                                        sf_term=term, sf_idx=idx, target_score=score, prev_mode="superficial",
-                                        script_name="{}_supervising_{}-{}".format(prompt_name, term, idx),
-                                        prev_script_name="{}_superficial_{}-{}".format(prompt_name, term, idx))
-        else:
-            code = 1
+        code = worker.sv_preprocess(preprocess_name=prompt_name, prompt_path="config/prompt/{}.yml".format(prompt_name),
+                                    sf_term=term, sf_idx=idx, target_score=score, prev_mode="superficial",
+                                    script_name="{}_supervising_{}-{}".format(prompt_name, term, idx),
+                                    prev_script_name="{}_superficial_{}-{}".format(prompt_name, term, idx))
 
         if code == 0:
             if tra:
                 worker.sv_train(preprocess_name=prompt_name, config_file_name="supervising.yml", sf_term=term, sf_idx=idx,
                                 script_name="{}_supervising_{}-{}".format(prompt_name, term, idx),
                                 prev_script_name="{}_superficial_{}-{}".format(prompt_name, term, idx))
+            if evl:
+                worker.sv_eval(preprocess_name=prompt_name, config_file_name="supervising.yml", sf_term=term, sf_idx=idx,
+                               script_name="{}_supervising_{}-{}".format(prompt_name, term, idx),)
+            if cls:
+                worker.sv_clustering(preprocess_name=prompt_name, config_file_name="supervising.yml", sf_term=term, sf_idx=idx,
+                                     script_name="{}_supervising_{}-{}".format(prompt_name, term, idx), )
         else:
             print("pass")
 

@@ -7,7 +7,7 @@ function Scatter(props) {
                 <img
                     src={props.imagePath}
                     alt="Example Image"
-                    className="h-80 w-auto"
+                    className="h-60 w-96"
                 />
             )}
         </div>

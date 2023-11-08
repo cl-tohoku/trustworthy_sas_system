@@ -7,24 +7,14 @@ export function HeatmapLine(props) {
         textDecorationLine: "underline", textDecorationThickness: "4px"}}>{t}</span>
     );
   };
-  const ExplansionLine = (t, c, j) => {
-    return (
-      <span className="text-sm mb-4" style={{backgroundColor: c, textDecorationColor: j,
-        textDecorationLine: "underline", textDecorationThickness: "4px"}}>{t}</span>
-    );
-  };
 
   const Render = (token, color, just) => {
+    console.log(props.expansion)
+    console.log(props.mask)
     if (props.mask) {
-      if (props.exansion) {
-        return token.map((t, jdx) => {
-          return ExplansionLine(t, color[jdx], just[jdx]);
-        });
-      } else {
-        return token.map((t, jdx) => {
-          return NormalLine(t, color[jdx], just[jdx]);
-        });
-      };
+      return token.map((t, jdx) => {
+        return NormalLine(t, color[jdx], just[jdx]);
+      });
     } else {
       return token.map((t, jdx) => {
         return <span className="text-sm" style={{backgroundColor: color[jdx]}}>{t}</span>
@@ -38,11 +28,20 @@ export function HeatmapLine(props) {
     })
   }
 
-  return (
+  if (props.expansion) {
+    return (
+      <div className="mb-4">
+        {props && <div>{Render(props.token, props.color, convert(props.just))}</div>}
+      </div>
+    );
+  } else {
+    return (
       <div>
         {props && <div>{Render(props.token, props.color, convert(props.just))}</div>}
       </div>
-  );
+    );
+
+  }
 }
 
 export default HeatmapLine;

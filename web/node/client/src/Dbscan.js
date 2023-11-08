@@ -15,7 +15,7 @@ export function Dbscan(props){
   const [result, setResult] = useState();
   const [clusterSize, setClusterSize] = useState(10);
   const [mask, setMask] = useState(false);
-  const [setting, setSetting] = useState('Y14_2115_standard');
+  const [setting, setSetting] = useState('Y14_1213_superficial_A-0');
   const [dataType, setDataType] = useState('train');
   const [imagePath, setImagePath] = useState("");
   const [term, setTerm] = useState("A")
@@ -31,6 +31,7 @@ export function Dbscan(props){
 
   const SetExpansion = (e) => {
     setExpansion(!expansion)
+    console.log(expansion)
   };
   
   const SetType = (e) => {
@@ -51,7 +52,7 @@ export function Dbscan(props){
   
   const RenderInertia = () => {
     return (
-      <div className="flex-none m-4 p-2 w-1/3 rounded-lg border border-gray-200 bg-white">
+      <div className="flex-none m-4 p-2 rounded-lg border border-gray-200 bg-white">
         <Scatter imagePath={inertiaPath} />
       </div>
     );
@@ -59,7 +60,7 @@ export function Dbscan(props){
 
   const RenderDendrogram = () => {
     return (
-      <div className="flex-none w-auto bg-white">
+      <div className="flex-none h-64 w-auto bg-white">
         <Dendrogram imagePath={dendrogramPath} />
       </div>
     );
@@ -68,7 +69,7 @@ export function Dbscan(props){
   const RenderRubric = () => {
     console.log(rubric)
     return (
-      <div className="flex-auto w-auto m-4 p-2 rounded-lg border border-gray-200 bg-white">
+      <div className="flex-auto h-64 w-auto m-4 p-2 rounded-lg border border-gray-200 bg-white">
         {
           rubric.term.map((value, index) => {
             return (

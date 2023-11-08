@@ -235,5 +235,21 @@ class EvalSupervising(EvalBase):
     def __init__(self, eval_config):
         super().__init__(eval_config)
 
+    def load_dataset(self, data_type):
+        return Util.load_dataset_static(self.config.preprocess_name, data_type, self.config.mode, self.config.dataset_dir)
+
+    def load_chosen_dataset(self):
+        return Util.load_dataset_static(self.config.script_name, "chosen", self.config.mode, self.config.dataset_dir)
+
     def __call__(self):
         self.model = Util.load_model(self.config, self.model_config)
+        # train set
+        print("Train")
+        train_dataset = self.load_dataset("train")
+        self.train_size = len(train_dataset)
+        self.eval(train_dataset, "train")
+        # test set
+        pprint(self.config)
+        print("Test")
+        test_dataset = self.load_dataset("test")
+        self.eval(test_dataset, "test")

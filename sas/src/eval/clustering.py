@@ -132,11 +132,11 @@ class Clustering:
         return score_list
 
     def plot_inertia(self, cluster_k_list, inertia_list, output_path):
-        plt.figure(figsize=(7, 4))
+        plt.figure(figsize=(4, 3))
         plt.plot(cluster_k_list, inertia_list, 'bo-')
         plt.xlabel('Number of clusters')
-        plt.ylabel('Inertia')
-        plt.title('The Elbow Method')
+        plt.ylabel('Mean of error')
+        plt.title('Elbow curve')
         plt.tight_layout()
         plt.savefig(output_path)
 

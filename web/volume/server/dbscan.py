@@ -24,7 +24,7 @@ app.add_middleware(
     allow_headers=["*"]       # 追記により追加
 )
 
-default_script = "Y14_2115_contamination"
+default_script = "Y14_1213_superficial_A-0"
 
 class State:
     def __init__(self):
