@@ -75,7 +75,7 @@ class SVPreprocessConfig(YAML):
     cluster_dir: str = "data/cluster/Y14"
     script_name: str = "Y14_1213_XXXX"
     threshold: float = 0.05
-    sampling_size: int = 10
+    sampling_size: int = 8
     prev_mode: str = "superficial"
     prev_script_name: str = None
 
@@ -123,6 +123,7 @@ class TrainConfig(YAML):
 class SVTrainConfig(TrainConfig):
     prev_mode: str = "superficial"
     prev_script_name: str = None
+    loss_lambda: float = 0.5
 
 
 @dataclass

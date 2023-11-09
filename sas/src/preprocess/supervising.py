@@ -29,7 +29,7 @@ class PreprocessSupervising:
     # クラスタ数を決定する
     # SSE が一定のしきい値以下になる最小のクラスタ数を推定
     def decide_cluster_df(self):
-        minimum_size = 3
+        minimum_size = 2
         cluster_range = (minimum_size, 11)
         inertia_list = []
         for cluster_k in range(*cluster_range):
@@ -37,8 +37,15 @@ class PreprocessSupervising:
             data_points = np.array([np.array(dp) for dp in cluster_df["Data_Point"]])
             cluster_labels = cluster_df["Cluster"].to_numpy()
             inertia_list.append(np.mean(np.min(1 - cosine_similarity(data_points, np.array([np.mean(data_points[cluster_labels == i], axis=0) for i in range(cluster_k)])), axis=1)))
-        arg = np.argwhere(np.array(inertia_list) < self.config.threshold)[:, 0]
-        desired_cluster_k = np.min(arg) + minimum_size if arg.size != 0 else 10
+
+        # 二回差分から計算を行う
+        sse_diff = np.diff(inertia_list)
+        sse_diff_change = np.diff(sse_diff)
+        desired_cluster_k = np.argmax(sse_diff_change) + 3
+        print(inertia_list, sse_diff_change, desired_cluster_k)
+
+        #arg = np.argwhere(np.array(inertia_list) < self.config.threshold)[:, 0]
+        #desired_cluster_k = np.min(arg) + minimum_size if arg.size != 0 else 10
         return self.load_cluster(desired_cluster_k)
 
     # 選ぶクラスタを（ヒューリスティクスに）決定する
@@ -70,7 +77,7 @@ class PreprocessSupervising:
         int_df = train_df.merge(cluster_df, on="Sample_ID", how="inner")
         chosen_df = int_df[int_df["Cluster"].isin(chosen_list)]
         sampling_size = self.config.sampling_size
-        sample_df = chosen_df.groupby("Cluster").apply(lambda x: x.sample(n=sampling_size, replace=False) if len(x) > sampling_size else x)
+        sample_df = chosen_df.groupby("Cluster").apply(lambda x: x.sample(n=sampling_size, replace=False, random_state=0) if len(x) > sampling_size else x)
         return sample_df
 
     # method

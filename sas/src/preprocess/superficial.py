@@ -118,9 +118,10 @@ class PreprocessSuperficial:
             for sf_idx, superficial_word in enumerate(top_k_words):
                 superficial_train_df = self.superficial(train_df, superficial_word)
                 superficial_valid_df = self.superficial(valid_df, superficial_word)
+                superficial_test_df = self.superficial(test_df, superficial_word)
                 self.to_pickle(superficial_train_df, "{}-{}-train".format(term, sf_idx))
                 self.to_pickle(superficial_valid_df, "{}-{}-valid".format(term, sf_idx))
-                self.to_pickle(test_df, "{}-{}-test".format(term, sf_idx))
+                self.to_pickle(superficial_test_df, "{}-{}-test".format(term, sf_idx))
                 # set manual
                 manual_dict[chr(term_idx + 65)][sf_idx] = superficial_word
 

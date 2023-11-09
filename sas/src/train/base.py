@@ -231,9 +231,8 @@ class TrainSupervising:
         max_score = self.prompt_config.max_scores
 
         # set grad loss function
-        self.loss = Loss.grad_loss(max_score, _lambda=1e-1, _print=True)
+        self.loss = Loss.grad_loss(max_score, _lambda=self.config.loss_lambda, _print=True)
         self.mse_loss = Loss.mse_loss(max_score)
-
 
     def set_optimizer(self):
         self.optimizer = AdamW(self.model.parameters(), lr=self.config.learning_rate)

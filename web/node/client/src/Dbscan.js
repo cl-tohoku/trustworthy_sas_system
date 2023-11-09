@@ -217,13 +217,13 @@ export function Dbscan(props){
           </div>
         </div>
         <div className="flex flex-row h-full">
-          <div className="flex flex-col w-64 border-r border-gray-300">
+          <div className="flex flex-col w-72 border-r border-gray-300">
             <div className="flex flex-col flex-grow p-4 overflow-auto">
               <FileList setSetting={setSetting}/>
             </div>
           </div>
-          <div className="flex flex-col w-screen overflow-auto bg-gray-200">
-            <div className="flex flex-row h-96 gap-4">
+          <div className="flex flex-col w-screen bg-gray-200">
+            <div className="flex flex-row h-auto gap-4">
               {result && RenderInertia()}
               {rubric && RenderRubric()}
             </div>
