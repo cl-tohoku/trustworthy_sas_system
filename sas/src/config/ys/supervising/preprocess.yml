@@ -7,5 +7,5 @@ target_score: 2
 cluster_dir: "data/cluster/Y14"
 script_name: "Y14_1213_XXXX"
 threshold: 0.1
-sampling_size: 10
+sampling_size: 8
 prev_mode: "superficial"

@@ -123,7 +123,7 @@ class TrainConfig(YAML):
 class SVTrainConfig(TrainConfig):
     prev_mode: str = "superficial"
     prev_script_name: str = None
-    loss_lambda: float = 0.5
+    loss_lambda: float = 1.0
 
 
 @dataclass

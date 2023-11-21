@@ -194,8 +194,8 @@ class TrainSupervising:
         self.model_path = Path(self.config.model_dir) / prev_model_name
 
         # 同じに設定する
-        self.step_size = 16
-        self.internal_size = 16
+        self.step_size = 128
+        self.internal_size = 128
 
         # prevent Catastrophic forgetting
         self.corr_dataset = None
@@ -261,8 +261,8 @@ class TrainSupervising:
         grad_list = []
         for ii, tti, am in tqdm(zip(dataset["input_ids"], dataset["token_type_ids"], dataset["attention_mask"])):
             ii, tti, am = transform(ii), transform(tti), transform(am)
-            grad = FA.calc_int_grad(baseline_model, ii, (tti, am), target_idx=self.target_idx, step_size=128,
-                                    internal_size=128)
+            grad = FA.calc_int_grad(baseline_model, ii, (tti, am), target_idx=self.target_idx, step_size=self.step_size,
+                                    internal_size=self.internal_size)
             grad = FA.compress(tensor=grad, summation=False)
             grad_list.append(grad)
 

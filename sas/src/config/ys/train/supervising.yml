@@ -5,7 +5,7 @@ dataset_dir: "data/pickle/Y14"
 model_dir: "data/model/Y14"
 model_config_path: "config/ys/model/bert.yml"
 loss: "mse"
-learning_rate: 0.00001
+learning_rate: 0.000005
 batch_size: 4
 epoch: 100
 wandb: true

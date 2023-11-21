@@ -30,7 +30,7 @@ export function HeatmapLine(props) {
 
   if (props.expansion) {
     return (
-      <div className="mb-4">
+      <div className="mb-6">
         {props && <div>{Render(props.token, props.color, convert(props.just))}</div>}
       </div>
     );

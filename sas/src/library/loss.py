@@ -50,6 +50,34 @@ class Loss:
             transformed_annotation = annotation[batch_idx][term_idx]
             transformed_annotation = transformed_annotation.unsqueeze(1).repeat(1, gradient.shape[1])
             ideal_gradient = (transformed_annotation * orig_gradient).detach()
+            # playground
+            a, b = torch.flatten(torch.sum(gradient, dim=1)), torch.flatten(torch.sum(transformed_annotation.double(), dim=1))
+            loss_second = 1.0 - torch.abs(F.cosine_similarity(a, b, dim=0))
+
+            loss = loss_first + _lambda * loss_second
+            message = 'Loss:{:.6f}, Loss_1:{:.6f}, Loss_2:{:.6f}, Loss_2_def:{:.3f}, '
+            if _print:
+                print(message.format(loss, loss_first, _lambda * loss_second, loss_second), end="\n")
+
+            return loss.double()
+
+        return loss_fn
+
+    @staticmethod
+    def prev_grad_loss(prompt_score, _lambda=1.0, _print=False):
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        prompt_score = torch.tensor(prompt_score).to(device)
+
+        def loss_fn(pred, gold, gradient, orig_gradient, annotation, term_idx=None, batch_idx=None):
+            # ordinal mse loss
+            pred_score_fixed = pred / prompt_score
+            true_score_fixed = gold / prompt_score
+            loss_first = F.mse_loss(pred_score_fixed, true_score_fixed)
+
+            # calc grad term
+            transformed_annotation = annotation[batch_idx][term_idx]
+            transformed_annotation = transformed_annotation.unsqueeze(1).repeat(1, gradient.shape[1])
+            ideal_gradient = (transformed_annotation * orig_gradient).detach()
 
             a, b = torch.flatten(torch.sum(gradient, dim=1)), torch.flatten(torch.sum(ideal_gradient, dim=1))
             loss_second = 1.0 - torch.abs(F.cosine_similarity(a, b, dim=0))
