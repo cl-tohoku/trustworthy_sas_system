@@ -1,0 +1,6 @@
+preprocess_name: "Y15_2213"
+script_path: "data/data_ys/Y15/Y15_2-2_1_3.0.json"
+dataset_dir: "data/pickle/Y14"
+prompt_path: "config/prompt/Y15_2213.yml"
+dataset_type: "ys"
+download_ft: false

@@ -1,0 +1,5 @@
+script_name: "toppan-1"
+script_path: "data/toppan/toppan.xlsx"
+dataset_dir: "data/pickle/toppan"
+dataset_type: "toppan"
+download_ft: false

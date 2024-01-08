@@ -1,8 +1,0 @@
-scoring_item_num: 4
-deduction_eos: False
-deduction_spl: False
-max_scores:
-  - 3
-  - 2
-  - 4
-  - 3

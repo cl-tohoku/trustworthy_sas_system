@@ -1,0 +1,11 @@
+preprocess_name: "Y14_1213"
+prompt_path: "config/prompt/test_prompt.yml"
+dataset_dir:  "data/pickle/Y14"
+sf_term: "A"
+sf_idx: 0
+target_score: 2
+cluster_dir: "data/cluster/Y14"
+script_name: "Y14_1213_XXXX"
+threshold: 0.1
+sampling_size: 8
+prev_mode: "superficial"

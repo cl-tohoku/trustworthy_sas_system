@@ -1,0 +1,17 @@
+script_name: "Y14_1213_XXX"
+preprocess_name: "Y14_1213"
+unique_id: "analytic"
+model_name: "bert"
+dataset_dir: "data/pickle/Y14"
+model_dir: "data/model/Y14"
+model_config_path: "config/ys/model/bert.yml"
+loss: "mse"
+learning_rate: 0.00005
+batch_size: 32
+epoch: 50
+wandb: true
+wandb_entity: "ekupura"
+wandb_project_name: "1102"
+wandb_group: "Y14_1213"
+parallel: true
+mode: "standard"

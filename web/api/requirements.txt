@@ -1,0 +1,9 @@
+fire
+seaborn
+fastapi
+uvicorn
+tqdm
+numpy
+scipy
+pandas
+scikit-learn

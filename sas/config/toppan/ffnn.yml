@@ -1,3 +1,0 @@
-dropout_rate: 0.5
-hidden_size: 128
-attention_hidden_size: 512

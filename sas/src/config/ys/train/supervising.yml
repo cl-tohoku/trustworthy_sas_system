@@ -1,0 +1,16 @@
+script_name: "Y14_2115_supervising"
+unique_id: "analytic"
+model_name: "bert"
+dataset_dir: "data/pickle/Y14"
+model_dir: "data/model/Y14"
+model_config_path: "config/ys/model/bert.yml"
+loss: "mse"
+learning_rate: 0.000005
+batch_size: 4
+epoch: 100
+wandb: true
+wandb_entity: "ekupura"
+wandb_project_name: "1102"
+wandb_group: "Y14_2115"
+parallel: true
+mode: "supervising"
